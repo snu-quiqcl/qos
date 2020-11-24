@@ -118,7 +118,6 @@ unsafe fn load_icode(env: &mut Env, binary: usize) {
         let end = util::round_up((ph.p_paddr + ph.p_memsz) as usize, PAGE_SIZE);
         let num_frames = (end-start) / PAGE_SIZE;
         let frame_number = mem::alloc_frame(num_frames, 1);
-
         for i in 0..num_frames {
             paging::map_va_to_fn(start+PAGE_SIZE*i, frame_number+i, paging::USER_FLAG);
         }

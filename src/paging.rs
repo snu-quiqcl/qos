@@ -43,7 +43,7 @@ impl L1TableEntry {
 
     fn get_l2_table(&self) -> &mut L2PageTable {
         unsafe {
-            &mut *((self.data & TABLE_ADDR_MASK) as *mut L2PageTable)
+            &mut *(pa_to_va((self.data & TABLE_ADDR_MASK))  as *mut L2PageTable)
         }
     }
 
@@ -100,7 +100,6 @@ pub fn map_va_to_fn(va: usize, frame_number: usize, flag: usize) {
     let directory = &mut page_table.entries[va/SECTION_SIZE];
     let pa = frame_number * PAGE_SIZE;
     if directory.is_section() {
-        list_pgdir(get_page_table());
         panic!("Attempt {:x}-> {:x}: Can't remap section", va, pa);
     } else if directory.is_table() {
     } else {
