@@ -18,7 +18,16 @@ pub struct Env {
 #[derive(Debug)]
 #[repr(C)]
 pub struct TrapFrame {
-    pub reg: [usize;16]
+    pub spsr: usize,
+    pub lr: usize,
+    pub sp: usize,
+    pub reg: [usize;13],
+    pub pc: usize,
+}
+
+extern "C" {
+    fn env_pop_tf(tf :&TrapFrame);
+    fn context_switch(tf: &TrapFrame);
 }
 
 pub enum EnvType{}
@@ -43,7 +52,6 @@ fn get_envs() -> &'static mut UserEnv{
 /// Create first user env
 pub fn env_create(binary: usize) {
     let new_env = env_alloc(0);
-    println!("{:x}", binary);
     
     unsafe {
         load_icode(new_env, binary);
@@ -54,6 +62,7 @@ pub fn env_create(binary: usize) {
 pub unsafe fn env_run(id: usize) {
     let envs = &*(ENVS as *const UserEnv);
     paging::change_pgdir(envs.envs[id].pgdir);
+    context_switch(&envs.envs[id].tf);
     env_pop_tf(&envs.envs[id].tf);
 }
 
@@ -65,6 +74,7 @@ pub fn env_alloc(parent_id: usize) -> &'static mut Env {
     let envs = get_envs();
 
     let new_env = &mut envs.envs[get_free_env()];
+    new_env.tf.spsr = 0x10;
     new_env.parent_id = parent_id;
 
 
@@ -117,21 +127,9 @@ unsafe fn load_icode(env: &mut Env, binary: usize) {
     let user_stack = mem::alloc_frame(1, 0);
     paging::map_va_to_fn(paging::USTACK - PAGE_SIZE, user_stack, paging::USER_FLAG);
 
-    env.tf.reg[15] = elf_hdr.e_entry as usize;
-    env.tf.reg[13] = paging::USTACK;
+    env.tf.pc = elf_hdr.e_entry as usize;
+    env.tf.sp = paging::USTACK;
+    env.tf.lr = 0;
 
     paging::change_pgdir(old_pgdir);
-}
-
-unsafe fn env_pop_tf(tf :&TrapFrame) {
-    asm!(
-    "
-    msr cpsr_c, #0x10
-    add r1, {val0}, #0
-    add r2, {val1}, #0
-    mov sp, r1
-    mov pc, r2
-    ",
-    val0 = in(reg) tf.reg[13],
-    val1 = in(reg) tf.reg[15],)
 }

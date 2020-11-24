@@ -1,3 +1,14 @@
+.equ MODE_USR, 0x10
+.equ MODE_FIQ, 0x11
+.equ MODE_IRQ, 0x12
+.equ MODE_SVC, 0x13
+.equ MODE_MON, 0x16
+.equ MODE_ABT, 0x17
+.equ MODE_HYP, 0x1a
+.equ MODE_UND, 0x1b
+.equ MODE_SYS, 0x1f
+
+
 .section .text.vector
 .global _vector_table
 _vector_table:
@@ -14,9 +25,9 @@ b _fiq /* FIQ */
 .global _start
 _start:
 /* Switch to supervisor mode */
-    msr cpsr_c, #0x17
+    msr cpsr_c, #MODE_IRQ
     ldr sp, =_bootstack
-    msr cpsr_c, #0x13 
+    msr cpsr_c, #MODE_SVC
     mov r0, #0
     mov r1, #0
     mov r2, #0
@@ -39,19 +50,6 @@ MRC p15, 0, r1, c2, c0, 2
 mov r2, #-4
 and r1, r1, r2
 MCR p15, 0, r1, c2, c0, 2
-
-/* Setup kernel page table */
-mov r0, #0
-ldr r1, =_kern_pgdir
-/* Kernel page directory */
-add r2, r1, #(1<<14)
-/* MMIO page table */
-add r2, r1, #(1<<10)
-
-page_loop:
-    cmp r1, r2
-    strlt r0, [r1], #4
-    blt page_loop
 
 ldr r1, =_kern_pgdir
 /* Register page table */
@@ -84,7 +82,7 @@ str r1, [r2]
 
 
 /* Make kernel domain 0 manager */
-mov r0, #-1
+mov r0, #1
 mcr p15, 0, r0, c3, c0, 0
 
 mov r0, #0
@@ -120,48 +118,51 @@ ldr sp, =_bootstack
 bl entry /* branch to rust */
 b .
 
-/* Interrupt entry */ 
-    
+
+.section .text
+/* Interrupt entry */     
 _undefined:
-str lr, [sp], #-4
-bl pre_interrupt
-bl undefined
-ldr lr, [sp], #4
-b .
-_svc:
-str lr, [sp], #-4
-bl pre_interrupt
-bl svc
-ldr lr, [sp], #4
-b .
-_prefetch:
-str lr, [sp], #-4
-bl pre_interrupt
-bl prefetch_abort
-ldr lr, [sp], #4
-b .
-_data:
-mov r0, lr
-mov r2, lr
-str lr, [sp], #-4
-bl pre_interrupt
-bl data_abort
-ldr lr, [sp], #4
-b .
-_irq:
-str lr, [sp], #-4
-bl pre_interrupt
-bl irq
-ldr lr, [sp], #4
-b .
-_fiq:
-str lr, [sp], #-4
-bl pre_interrupt
-bl fiq
-ldr lr, [sp], #4
 b .
 
-pre_interrupt:
-stmdb sp!, {r0-r15} /* push registers */
-mov r0, sp
-bx lr
+_svc:
+stmfd sp!, {r0-r12, lr}
+add r0, sp, #-12
+bl svc
+ldmfd sp!, {r0-r12, pc}^
+
+_prefetch:
+b .
+_data:
+b .
+_irq:
+stmdb sp, {r0-r2}
+mrs r0, spsr
+mov r1, lr
+mov r2, sp
+add sp, sp, #12
+msr cpsr_c, #0x17
+/* store interrupted pc */
+stmfd sp!, {r1}
+stmfd sp!, {r3-r12}
+ldmfd r2!, {r3-r5}
+stmfd sp!, {r3-r5}
+stmfd sp!, {r0}
+
+_fiq:
+b .
+
+.global context_switch
+context_switch:
+    msr cpsr_c, #MODE_SYS
+    ldr r1, [r0]
+    ldr lr, [r0, #4]
+    ldr sp, [r0, #8]
+    msr cpsr_c, #MODE_SVC
+    msr spsr, r1
+    bx lr
+
+.global env_pop_tf
+env_pop_tf:
+    add r0, #12
+    ldmfd r0, {r0-r12, pc}^
+    b .

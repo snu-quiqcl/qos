@@ -25,10 +25,10 @@ pub fn init() {
         mem::mem_init(); // Initialize memory allocator
         println!("Init allocator");
         env::env_init();
+        println!("C");
         let user_prog = mem::fn_to_va(mem::alloc_frame(3, 0));
         use mem::memcpy;
         memcpy(user_prog as *mut u8, USER_PROG.as_ptr(), USER_PROG.len());
-        println!("{:x}", user_prog);
         env::env_create(user_prog);
     }
 }

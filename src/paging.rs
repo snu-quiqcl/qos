@@ -78,6 +78,7 @@ pub unsafe fn page_init() {
     let entries = &mut kern_pgdir.entries;
 
     let mut i = 0;
+    mem::memset(entries as *mut _ as *mut u8, 0, 1024*3*4);
     let offset = KERN_BASE / (1024*1024); 
     while i < 1023 {
         entries[i+offset].data = (i << 20) | 0x1280e;
@@ -99,7 +100,8 @@ pub fn map_va_to_fn(va: usize, frame_number: usize, flag: usize) {
     let directory = &mut page_table.entries[va/SECTION_SIZE];
     let pa = frame_number * PAGE_SIZE;
     if directory.is_section() {
-        panic!("Can't remap section");
+        list_pgdir(get_page_table());
+        panic!("Attempt {:x}-> {:x}: Can't remap section", va, pa);
     } else if directory.is_table() {
     } else {
         let data = fn_to_pa(alloc_frame(1, 1)) | 0x1;
@@ -116,7 +118,7 @@ pub fn map_va_to_device(va: usize, pa: usize, flag: usize) {
     let directory = &mut page_table.entries[va/SECTION_SIZE];
     
     if directory.is_section() {
-        panic!("Can't remap section");
+        panic!("Attempt {:x}-> {:x}: Can't remap section", va, pa);
     } else if directory.is_table() {
 
     } else {

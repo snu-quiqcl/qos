@@ -45,9 +45,20 @@
 
 
 extern crate compiler_builtins;
-pub use compiler_builtins::mem::{memset, memcpy};
 use crate::env::{UserEnv, ENVS};
 use crate::{println, print};
+
+pub unsafe fn memset(dest: *mut u8, value: u8, size: usize) {
+    for i in 0..(size as isize) {
+        *dest.offset(i) = value;
+    }
+}
+
+pub unsafe fn memcpy(dest: *mut u8, src: *const u8, size: usize) {
+    for i in 0..(size as isize) {
+        *dest.offset(i) = *src.offset(i);
+    }
+}
 
 extern "C" {
     static _bootstack: usize;

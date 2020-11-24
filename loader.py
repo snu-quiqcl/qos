@@ -42,7 +42,7 @@ def boot(ser, file_name):
 if __name__ == '__main__':
     ser = serial.Serial('/dev/ttyUSB1', 115200)
     
-    file_name = 'target/armv7a-none-eabi/release/os'
+    file_name = 'target/armv7a-none-eabi/release/kernel'
     boot(ser, file_name)
 
     while True:
