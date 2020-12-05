@@ -42,9 +42,13 @@ SECTIONS
     }
 
     . = ALIGN(4k);
+
     . = . + 16k;
     _bootstack = .;
-
+   
+    . = . + 1K;
+    . = ALIGN(8);
+    _irq_stack = .; 
 
 
     .shstrtab : 

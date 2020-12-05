@@ -24,6 +24,11 @@ pub fn init() {
         println!("Init page");
         mem::mem_init(); // Initialize memory allocator
         println!("Init allocator");
+
+        io::slcr::slcr_init();
+        io::mpcore::mpcore_init();
+        io::mpcore::gic_init();
+        
         env::env_init();
         let user_prog = mem::fn_to_va(mem::alloc_frame(3, 0));
         use mem::memcpy;

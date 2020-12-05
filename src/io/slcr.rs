@@ -2,7 +2,7 @@ use volatile_register::{RO, RW};
 use crate::paging::map_va_to_device;
 
 pub const _SLCR_PHYS: usize = 0xf800_0000; // Physical base address of System Level Control registers (SLCRs)
-pub const _SLCR_VIRT: usize = 0xfff0_1000; // Virtual base address of SLCRs -> SlcrRegs
+pub const _SLCR_VIRT: usize = 0xfff0_3000; // Virtual base address of SLCRs -> SlcrRegs
 
 /// Map a page (4 KB) to SLCRs 
 pub fn slcr_init() {
@@ -11,20 +11,20 @@ pub fn slcr_init() {
 
 #[repr(C)]
 pub struct SlcrRegs {           // Base Address - End Address:     0xFFF01000 - 0xFFF02000
-    pub reserved0: [u32; 11],
+    pub reserved0: [u32;11],
     pub arm_clk_ctrl: RW<u32>,  // CPU Clock Control:              0x0000_0120 
     pub ddr_clk_ctrl: RW<u32>,  // DDR Clock Control:              0x0000_0124
     pub dci_clk_ctrl: RW<u32>,  // DCI Clock Control:              0x0000_0128
     pub aper_clk_ctrl: RW<u32>, // AMBA Peripheral Clock Control:  0x0000_012C
-    pub reserved1: [u32; 9],
+    pub reserved1: [u32;9],
     pub uart_clk_ctrl: RW<u32>, // UART Ref Clock Control:         0x0000_0154
-    pub reserved2: [u32; 22],
+    pub reserved2: [u32;22],
     pub clk_621_true: RW<u32>,  // CPU Clock Ratio Mode Select:    0x0000_01C4
-    pub reserved3: [u32; 10],
+    pub reserved3: [u32;10],
     pub uart_rst_ctrl: RW<u32>, // UART Software Reset Control:    0x0000_0228
-    pub reserved4: [u32; 5],
+    pub reserved4: [u32;5],
     pub a9_cpu_rst: RW<u32>,    // CPU Reset and Clock Control:    0x0000_0244
-    pub reserved5: [u32; 97],
+    pub reserved5: [u32;97],
 }
 
 impl SlcrRegs {

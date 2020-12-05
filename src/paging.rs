@@ -124,7 +124,7 @@ pub fn map_va_to_device(va: usize, pa: usize, flag: usize) {
         *directory = L1TableEntry{ data: fn_to_pa(alloc_frame(1, 1)) | 0x1};
     }
     let l2_table = directory.get_l2_table();
-    l2_table.entries[(pa&!DIRECTORY_MASK)/PAGE_SIZE] = L2TableEntry { data: L2_ADDR_MASK&pa | flag | 0x813};
+    l2_table.entries[(va&!DIRECTORY_MASK)/PAGE_SIZE] = L2TableEntry { data: L2_ADDR_MASK&pa | flag | 0x813};
 }
 
 /// return physical address of old pgdir

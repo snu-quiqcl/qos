@@ -23,6 +23,7 @@ pub struct UartRegs {
     pub fifo: RW<u32>,        // Transmit and recieve
     pub baudgen_div: RW<u32>, // Baud Rate Divder
     pub flow_delay: RW<u32>,  // Flow Control Delay
+    pub reserved: [u32;2],
     pub tx_trigger: RW<u32>,  // Transmitter FIFO Trigger level
 }
 
@@ -30,7 +31,7 @@ impl UartRegs {
     pub const TX_FIFO: u32 = 64;
 
     pub fn write(&mut self, c: u8) {
-//        while self.is_tx_full() {} // Polling
+        while self.is_tx_full() {} // Polling
         unsafe {
             self.fifo.write(c as u32);
         }
@@ -48,7 +49,6 @@ impl UartRegs {
                 }
                 len_itr -= Self::TX_FIFO;
                 _itr += Self::TX_FIFO;
-                //while self.is_tx_empty{}
             } 
             for c in s.bytes() {
                 if (c as u32) > _itr-1 && (c as u32) < _itr+(Self::TX_FIFO) { self.write(c); }
