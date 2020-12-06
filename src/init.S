@@ -26,7 +26,7 @@ b _fiq /* FIQ */
 _start:
 /* Switch to supervisor mode */
     msr cpsr_c, #MODE_IRQ
-    ldr sp, =_irq_stack
+    ldr sp, =_irq_stack /* set IRQ stack*/
     msr cpsr_c, #MODE_SVC
     mov r0, #0
     mov r1, #0
@@ -139,39 +139,17 @@ _data:
 b .
 
 _irq:
-srsfd #0x12! // push return state
-stmfd sp, {r0-r3, r12} // push AAPCS
-
-bl _gic
-
-ldmfd sp, {r0-r3, r12} // restore registers
-rfefd sp! // return from exception
-
-/*
-stmdb sp, {r0-r2}
-mrs r0, spsr
-mov r1, lr
-mov r2, sp
-add sp, sp, #12
-msr cpsr_c, #0x17
-*/
-/* store interrupted pc */
-/*
-stmfd sp!, {r1}
-stmfd sp!, {r3-r12}
-ldmfd r2!, {r3-r5}
-stmfd sp!, {r3-r5}
-stmfd sp!, {r0}
-*/
-
-
+sub lr, lr, #4
+stmfd sp!, {r0-r12, lr}
+bl gic
+ldmfd sp!, {r0-r12, pc}^
 
 _fiq:
 b .
 
-.global _gic
-_gic:
-    bl gic
+.global gic
+gic:
+    bl gic_isr
 
 .global context_switch
 context_switch:
