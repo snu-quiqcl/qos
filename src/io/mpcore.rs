@@ -100,14 +100,20 @@ pub unsafe fn gic_init() {
     mpcore.cpu_interface.icr.write(ICR_ENABLE); // enable signaling of interrupts to processors
     mpcore.distributor.dcr.write(DCR_ENABLE); // enable distributions of secure interrupts
 
-    interrupt_enable();
+    global_interrupt_enable();
 }
 
-pub unsafe fn interrupt_enable() {
-    asm!("cpsie if");
+pub unsafe fn global_interrupt_enable() {
+    /* r0-r3, r12 are scratch registers */
+    asm!("
+        mrs r1, cpsr
+        bic r1, r1, #0x80 /* enable irq */
+        msr cpsr_c, r1
+    ");
 }
 
 #[no_mangle]
 pub extern "C" fn gic_isr() {
     println!("ISR");
+
 }
