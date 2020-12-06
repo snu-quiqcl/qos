@@ -108,6 +108,6 @@ pub unsafe fn interrupt_enable() {
 }
 
 #[no_mangle]
-pub extern "C" fn gic() {
+pub extern "C" fn gic_isr() {
     println!("ISR");
 }
