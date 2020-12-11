@@ -2,15 +2,13 @@ use crate::{println, print};
 use super::env::TrapFrame;
 use core::ffi;
 use core::str::FromStr;
-use crate::io::uart::Uart;
+use crate::io::uart;
 use crate::io::mpcore::Mpcore;
+
 use lazy_static::lazy_static;
 use spin::Mutex;
+
 pub static mut count_isr: u32 = 0;
-pub static mut UART_TX_STR: &'static str = "uart...";
-pub static mut UART_TX_LEN: u32 = 64;
-pub static mut UART_TX_ITR: u32 = 64;
-pub static mut UART_TX_SET: u32 = 0;
 
 /*
 pub struct WriteUart {
@@ -62,8 +60,8 @@ pub unsafe extern "C" fn irq() {
     match irqid {
         82 => { /* Uart TX Empty*/
             unsafe {count_isr += 1;}
-            let mut uart = Uart::get();
-            uart.regs.isr_tx(UART_TX_STR);
+            let mut uart = uart::Uart::get();
+            uart.regs.isr_tx(uart::UART_TX_STR);
             uart.regs.isr.write(0 << 3); // disable before return
               },
         _ => {}

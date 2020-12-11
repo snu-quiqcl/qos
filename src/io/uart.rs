@@ -2,7 +2,34 @@ use volatile_register::{RO, RW};
 use core::fmt::Write;
 use crate::io::slcr;
 use crate::paging::KERN_BASE;
-use crate::interrupt::{UART_TX_STR, UART_TX_LEN, UART_TX_ITR, UART_TX_SET};
+
+use lazy_static::lazy_static;
+use spin::Mutex;
+
+pub static mut UART_TX_STR: &'static str = "uart...";
+pub static mut UART_TX_LEN: u32 = 64;
+pub static mut UART_TX_ITR: u32 = 64;
+pub static mut UART_TX_SET: u32 = 0;
+
+/*
+pub struct WriteUart {
+    pub UART_TX_STR: &'static str,
+    pub UART_TX_LEN: u32,
+    pub UART_TX_ITR: u32,
+    pub UART_TX_SET: u32,
+}
+
+lazy_static! {
+    pub static ref WRITEUART: Mutex<WriteUart> = Mutex::new(WriteUart {
+        pub UART_TX_STR = "uart...",
+        pub UART_TX_LEN = 0,
+        pub UART_TX_ITR = 0,
+        pub UART_TX_SET = 0,
+    }) {
+
+    }
+}
+*/
 
 pub const _UART_PHYS: usize = 0xe000_1000; // Physical base address of Uart 1   
 pub const _UART_VIRT: usize = 0xfff0_0000; // Virtual base address of Uart -> UartRegs
