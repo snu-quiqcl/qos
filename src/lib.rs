@@ -19,20 +19,28 @@ static USER_PROG:&[u8] = include_bytes!("../usr/shell");
 pub fn init() {
     unsafe {
         let mut uart = io::uart::Uart::get();
-        io::uart::uart_init();// Initialize UART
+        io::uart::uart_init();// Initialize uart
         println!("Init uart");      
         paging::page_init(); // Initialize kernel page mapping
         println!("Init page");
         mem::mem_init(); // Initialize memory allocator
         println!("Init allocator");
- //       io::slcr::slcr_init();
-        io::mpcore::mpcore_init();
-        io::mpcore::gic_init();
-        uart.regs.print_str("testttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt");
-        println!("\n num uart_tx interrupt: {}", interrupt::count_isr);
-        uart.regs.print_str("testttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt");
-        println!("\n num uart_tx interrupt: {}", interrupt::count_isr);
-        
+ //       io::slcr::slcr_init(); // Map system level control registers
+ //       println!("Init slcr");
+        io::mpcore::mpcore_init(); // Map mpcore registers
+        println!("Init mpcore");
+        io::mpcore::gic_init(); // Initialize generic interrupt controller
+        println!("Init gic");
+
+        /* println uses polling for debugging issues
+           uart.regs.write_str is interrupt-driven */
+        uart.regs.write_str("start------end\n");
+        println!("num uart_tx interrupt: {}", interrupt::count_isr);
+        uart.regs.write_str("start-----------------------------------------------------end\n");
+        println!("num uart_tx interrupt: {}", interrupt::count_isr);
+        uart.regs.write_str("start-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------end\n");
+        println!("num uart_tx interrupt: {}", interrupt::count_isr);
+
         env::env_init();       
         let user_prog = mem::fn_to_va(mem::alloc_frame(3, 0));
         use mem::memcpy;

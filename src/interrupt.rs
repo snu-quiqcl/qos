@@ -1,34 +1,10 @@
 use crate::{println, print};
 use super::env::TrapFrame;
 use core::ffi;
-use core::str::FromStr;
 use crate::io::uart;
 use crate::io::mpcore::Mpcore;
 
-use lazy_static::lazy_static;
-use spin::Mutex;
-
 pub static mut count_isr: u32 = 0;
-
-/*
-pub struct WriteUart {
-    pub UART_TX_STR: &'static str,
-    pub UART_TX_LEN: u32,
-    pub UART_TX_ITR: u32,
-    pub UART_TX_SET: u32,
-}
-
-lazy_static! {
-    pub static ref WRITEUART: Mutex<WriteUart> = Mutex::new(WriteUart {
-        pub UART_TX_STR = "uart...",
-        pub UART_TX_LEN = 0,
-        pub UART_TX_ITR = 0,
-        pub UART_TX_SET = 0,
-    }) {
-
-    }
-}
-*/
 
 #[no_mangle]
 pub extern "C" fn undefined(tf: &TrapFrame) {
@@ -58,12 +34,18 @@ pub extern "C" fn data_abort(tf: &TrapFrame) {
 pub unsafe extern "C" fn irq() {
     let irqid: u32 = irq_acknowledge_interrupt();
     match irqid {
-        82 => { /* Uart TX Empty*/
-            unsafe {count_isr += 1;}
+        82 => { /* Uart */
+            const UART_TX_EMPTY: u32 = 0x8;
+
             let mut uart = uart::Uart::get();
-            uart.regs.isr_tx(uart::UART_TX_STR);
-            uart.regs.isr.write(0 << 3); // disable before return
-              },
+            let uart_irqid = uart.regs.sr.read();
+            
+            if uart_irqid & UART_TX_EMPTY == UART_TX_EMPTY {
+                unsafe {count_isr += 1;}
+                uart.regs.irq_tx_empty();
+                uart.regs.isr.write(0 << 3); // disable channel status
+            }
+            }, 
         _ => {}
     }
     irq_end_interrupt(irqid);

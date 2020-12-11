@@ -2,37 +2,28 @@ use volatile_register::{RO, RW};
 use core::fmt::Write;
 use crate::io::slcr;
 use crate::paging::KERN_BASE;
-
+use crate::{println, print};
 use lazy_static::lazy_static;
 use spin::Mutex;
 
-pub static mut UART_TX_STR: &'static str = "uart...";
-pub static mut UART_TX_LEN: u32 = 64;
-pub static mut UART_TX_ITR: u32 = 64;
-pub static mut UART_TX_SET: u32 = 0;
+pub const _UART_PHYS: usize = 0xe000_1000; // Physical base address of Uart 1   
+pub const _UART_VIRT: usize = 0xfff0_0000; // Virtual base address of Uart -> UartRegs
 
-/*
-pub struct WriteUart {
-    pub UART_TX_STR: &'static str,
-    pub UART_TX_LEN: u32,
-    pub UART_TX_ITR: u32,
-    pub UART_TX_SET: u32,
+pub struct IrqTxEmpty {
+    pub UART_TX_STRING: &'static str,
+    pub UART_TX_LENGTH: u32,
+    pub UART_TX_ITERATE: u32,
+    pub UART_TX_RANGE: u32,
 }
 
 lazy_static! {
-    pub static ref WRITEUART: Mutex<WriteUart> = Mutex::new(WriteUart {
-        pub UART_TX_STR = "uart...",
-        pub UART_TX_LEN = 0,
-        pub UART_TX_ITR = 0,
-        pub UART_TX_SET = 0,
-    }) {
-
-    }
+    pub static ref IRQ_TX_EMPTY: Mutex<IrqTxEmpty> = Mutex::new(IrqTxEmpty {
+        UART_TX_STRING: "uart...",
+        UART_TX_LENGTH: 64,
+        UART_TX_ITERATE: 64,
+        UART_TX_RANGE: 0,
+    });
 }
-*/
-
-pub const _UART_PHYS: usize = 0xe000_1000; // Physical base address of Uart 1   
-pub const _UART_VIRT: usize = 0xfff0_0000; // Virtual base address of Uart -> UartRegs
 
 #[repr(C)]
 pub struct UartRegs {
@@ -58,61 +49,48 @@ pub struct UartRegs {
 impl UartRegs {
     pub const TX_FIFO: u32 = 64;
 
+    pub fn macro_print(&mut self, s: &str) {
+        for c in s.bytes() { self.write(c) }        
+    }
+
     pub fn write(&mut self, c: u8) {
- //       while self.is_tx_full() {} // polling
+//        while self.is_tx_full() {} // polling
         unsafe {
             self.fifo.write(c as u32);
         }
     }
 
-    pub fn macro_print(&mut self, s: &str) {
-        for c in s.bytes() {
-            self.write(c)
-        }        
-    }
-
     pub fn write_str(&mut self, s: &'static str) {
         let str_len: u32 = s.len() as u32;
-
-        if str_len > Self::TX_FIFO {
-            unsafe {
-                UART_TX_STR = s;
-                UART_TX_LEN = str_len; 
-                UART_TX_ITR = UART_TX_LEN;
-                UART_TX_SET = 0;
-                self.ier.write(1 << 3); // enable TX_Empty interrupt
-            }
-        } else {
-            for c in s.bytes() {
-                self.write(c);
-            }
-        }
+        IRQ_TX_EMPTY.lock().UART_TX_STRING = s;
+        IRQ_TX_EMPTY.lock().UART_TX_LENGTH = str_len;
+        IRQ_TX_EMPTY.lock().UART_TX_ITERATE = str_len;
+        IRQ_TX_EMPTY.lock().UART_TX_RANGE = 0;
+        unsafe { self.ier.write(1 << 3); } // enable TX_Empty interrupt
     }
 
-    pub unsafe fn isr_tx (&mut self, s: &'static str) {
-        if UART_TX_ITR > Self::TX_FIFO {
-            for c in s.bytes() {
-                if (c as u32) > UART_TX_SET-1 && (c as u32) < UART_TX_SET+(Self::TX_FIFO) { self.write(c); }
-            }
-            UART_TX_ITR -= Self::TX_FIFO;
-            UART_TX_SET += Self::TX_FIFO;
+    pub fn irq_tx_empty (&mut self) {
+        let mut tx_empty_lock = IRQ_TX_EMPTY.lock();
+        let tx_str = tx_empty_lock.UART_TX_STRING;
+        if tx_empty_lock.UART_TX_ITERATE > Self::TX_FIFO {
+            let tx_ran: usize = tx_empty_lock.UART_TX_RANGE as usize;
+            let tx_itr = &tx_str[tx_ran..(tx_ran+(Self::TX_FIFO as usize))+1];
+            for c in tx_itr.bytes() { self.write(c); }
+            tx_empty_lock.UART_TX_ITERATE -= Self::TX_FIFO;
+            tx_empty_lock.UART_TX_RANGE += Self::TX_FIFO;
         } else {
-            unsafe {
-                self.idr.write(1 << 3); // disable TX_Empty interrupt
-            }
-            for c in s.bytes() {
-                if (c as u32) > UART_TX_SET-1 && (c as u32) < UART_TX_SET+(Self::TX_FIFO) { self.write(c); }
-            }
+            let tx_ran: usize = tx_empty_lock.UART_TX_RANGE as usize;
+            let tx_len: usize = tx_empty_lock.UART_TX_LENGTH as usize;
+            let tx_itr = &tx_str[tx_ran..tx_len];
+            for c in tx_itr.bytes() { self.write(c); }
+            unsafe { self.idr.write(1 << 3); } // disable TX_Empty interrupt
         }
-    } 
+        drop(tx_empty_lock);
+    }
 
     pub fn read(&mut self) -> u8 {
 //        while self.is_rx_empty() {} // polling
         self.fifo.read() as u8
-    }
-
-    pub fn print_str(&mut self, s: &'static str){
-        self.write_str(s);
     }
 }
 
