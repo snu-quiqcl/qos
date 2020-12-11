@@ -70,7 +70,6 @@ impl UartRegs {
             UART_TX_ITR -= Self::TX_FIFO;
             UART_TX_SET += Self::TX_FIFO;
             let uart = Uart::get();
-            uart.regs.ier.write(1 << 3);
         } else {
             unsafe {
                 self.idr.write(1 << 3); // disable TX_Empty interrupt
