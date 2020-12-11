@@ -2,8 +2,9 @@ use volatile_register::{RO, RW};
 use core::fmt::Write;
 use crate::io::slcr;
 use crate::paging::KERN_BASE;
+use crate::interrupt::{UART_TX_STR, UART_TX_LEN, UART_TX_ITR, UART_TX_SET};
 
-pub const _UART_PHYS: usize = 0xe000_1000; // Physical base address of Uart (1)   
+pub const _UART_PHYS: usize = 0xe000_1000; // Physical base address of Uart 1   
 pub const _UART_VIRT: usize = 0xfff0_0000; // Virtual base address of Uart -> UartRegs
 
 #[repr(C)]
@@ -31,27 +32,28 @@ impl UartRegs {
     pub const TX_FIFO: u32 = 64;
 
     pub fn write(&mut self, c: u8) {
-        while self.is_tx_full() {} // Polling
+ //       while self.is_tx_full() {} // polling
         unsafe {
             self.fifo.write(c as u32);
         }
     }
 
-    pub fn write_str(&mut self, s: &str) {
+    pub fn macro_print(&mut self, s: &str) {
+        for c in s.bytes() {
+            self.write(c)
+        }        
+    }
+
+    pub fn write_str(&mut self, s: &'static str) {
         let str_len: u32 = s.len() as u32;
-        let mut len_itr: u32 = str_len;
-        let mut _itr: u32 = 0;
 
         if str_len > Self::TX_FIFO {
-            while len_itr > Self::TX_FIFO {
-                for c in s.bytes() {
-                    if (c as u32) > _itr-1 && (c as u32) < _itr+(Self::TX_FIFO) { self.write(c); }
-                }
-                len_itr -= Self::TX_FIFO;
-                _itr += Self::TX_FIFO;
-            } 
-            for c in s.bytes() {
-                if (c as u32) > _itr-1 && (c as u32) < _itr+(Self::TX_FIFO) { self.write(c); }
+            unsafe {
+                UART_TX_STR = s;
+                UART_TX_LEN = str_len; 
+                UART_TX_ITR = UART_TX_LEN;
+                UART_TX_SET = 0;
+                self.ier.write(1 << 3); // enable TX_Empty interrupt
             }
         } else {
             for c in s.bytes() {
@@ -59,47 +61,46 @@ impl UartRegs {
             }
         }
     }
-/* 
-    pub fn write_str(&mut self, s: &str) {
-        for c in s.bytes() {
-            if (c as u32) >= 0 && (c as u32) < Self::TX_FIFO { self.write(c); }
-        }
-        while self.is_tx_full {}
 
-    }
- */
+    pub unsafe fn isr_tx (&mut self, s: &'static str) {
+        if UART_TX_ITR > Self::TX_FIFO {
+            for c in s.bytes() {
+                if (c as u32) > UART_TX_SET-1 && (c as u32) < UART_TX_SET+(Self::TX_FIFO) { self.write(c); }
+            }
+            UART_TX_ITR -= Self::TX_FIFO;
+            UART_TX_SET += Self::TX_FIFO;
+            let uart = Uart::get();
+            uart.regs.ier.write(1 << 3);
+        } else {
+            unsafe {
+                self.idr.write(1 << 3); // disable TX_Empty interrupt
+            }
+            for c in s.bytes() {
+                if (c as u32) > UART_TX_SET-1 && (c as u32) < UART_TX_SET+(Self::TX_FIFO) { self.write(c); }
+            }
+        }
+    } 
+
     pub fn read(&mut self) -> u8 {
-        while self.is_rx_empty() {} // polling
+//        while self.is_rx_empty() {} // polling
         self.fifo.read() as u8
     }
 
-    pub fn is_tx_full(&self) -> bool {
-        (self.sr.read() & (1<<4)) != 0
-    }
-
-    pub fn is_tx_empty(&self) -> bool {
-        (self.sr.read() & (1<<3)) != 0
-    }
-
-    pub fn is_rx_full(&self) -> bool {
-        (self.sr.read() & (1<<2)) != 0
-    }
-
-    pub fn is_rx_empty(&self) -> bool {
-        (self.sr.read() & (1<<1)) != 0
+    pub fn print_str(&mut self, s: &'static str){
+        self.write_str(s);
     }
 }
 
 impl Write for UartRegs {
     fn write_str(&mut self, s: &str) -> Result<(), core::fmt::Error> {
-        self.write_str(s);
+        self.macro_print(s);
         Ok(())
     }
 }
 
 /// Wrapper for UartRegs
 pub struct Uart {
-    regs: &'static mut UartRegs,
+    pub regs: &'static mut UartRegs,
 }
 
 impl Uart {
@@ -170,12 +171,15 @@ impl Uart {
     pub unsafe fn transmit_fmt(&mut self, args: core::fmt::Arguments) {
         /* Transmit using interrupt
         */
+        
+        /*
+        unsafe {
+            self.regs.ier.write(1 << 3); // enable TX_Empty interrupt
+            self.regs.isr.write(1 << 3); // force interrupt
+          }
+        */
         self.config_init();
-
-        self.regs.idr.write(1 << 3); // disable TX FIFO empty interrupt
         self.regs.write_fmt(args).unwrap();
-       // self.regs.
-
     }
 /*
     pub unsafe receive(&self) {

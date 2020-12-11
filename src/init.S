@@ -45,10 +45,11 @@ _start:
     mov r14, #0
 setup:
 /* Disable interrupts */
-mrs r1, cpsr
-orr r1, r1, #0x80 /* disable irq */
-orr r1, r1, #0x40 /* disable fiq */
-msr cpsr_c, r1
+//mrs r1, cpsr
+//orr r1, r1, #0x80 /* disable irq */
+//orr r1, r1, #0x40 /* disable fiq */
+//msr cpsr_c, r1
+cpsid if
 
 /* Set TTBCR.N = 0 */
 MRC p15, 0, r1, c2, c0, 2
@@ -144,15 +145,11 @@ b .
 _irq:
 sub lr, lr, #4
 stmfd sp!, {r0-r12, lr}
-bl gic
+bl irq
 ldmfd sp!, {r0-r12, pc}^
 
 _fiq:
 b .
-
-.global gic
-gic:
-    bl gic_isr
 
 .global context_switch
 context_switch:
