@@ -33,7 +33,7 @@ pub fn init() {
         println!("Init gic");
 
         /* println uses polling for debugging issues
-           uart.regs.write_str is interrupt-driven */
+           uart.print is interrupt-driven */
         uart.print("start------end\n");
         println!("num uart_tx interrupt: {}", interrupt::count_isr);
         uart.print("start-----------------------------------------------------end\n");
