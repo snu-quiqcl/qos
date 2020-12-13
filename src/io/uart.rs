@@ -62,10 +62,12 @@ impl UartRegs {
 
     pub fn write_str(&mut self, s: &'static str) {
         let str_len: u32 = s.len() as u32;
-        IRQ_TX_EMPTY.lock().UART_TX_STRING = s;
-        IRQ_TX_EMPTY.lock().UART_TX_LENGTH = str_len;
-        IRQ_TX_EMPTY.lock().UART_TX_ITERATE = str_len;
-        IRQ_TX_EMPTY.lock().UART_TX_RANGE = 0;
+        let mut tx_empty_lock = IRQ_TX_EMPTY.lock();
+        tx_empty_lock.UART_TX_STRING = s;
+        tx_empty_lock.UART_TX_LENGTH = str_len;
+        tx_empty_lock.UART_TX_ITERATE = str_len;
+        tx_empty_lock.UART_TX_RANGE = 0;
+        drop(tx_empty_lock);
         unsafe { self.ier.write(1 << 3); } // enable TX_Empty interrupt
     }
 
