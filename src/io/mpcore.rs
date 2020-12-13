@@ -80,7 +80,9 @@ impl Mpcore{
     pub const TIMER_BASE: *mut TimerRegs = ((_MPCORE_VIRT0 as u32) + 0x0000_0200) as *mut TimerRegs;
     pub const GICD_BASE: *mut GICDRegs = (_MPCORE_VIRT1 as u32) as *mut GICDRegs;
     pub const GICP_BASE: *mut GICPRegs = ((_MPCORE_VIRT1 as u32) + 0x0000_0d00) as *mut GICPRegs;
-    
+    pub const IAR_MASK: u32 = 0x3ff;
+    pub const EOI_MASK: u32 = 0x1c00;
+
     pub fn get() -> Mpcore {
         Mpcore {
             cpu_interface: unsafe {&mut *(Self::GICC_BASE)},
@@ -89,6 +91,17 @@ impl Mpcore{
             peripheral: unsafe {&mut *(Self::GICP_BASE)},
         }
     }
+
+    pub fn irq_acknowledge_interrupt(&mut self) -> u32 {
+        let irqid: u32 = self.cpu_interface.iar.read() & Self::IAR_MASK;
+        irqid
+    }
+    
+    pub fn irq_end_interrupt(&mut self, irqid: u32) {
+        let mut eoi: u32 = self.cpu_interface.eoir.read() & Self::EOI_MASK;
+        eoi +=  irqid;
+        unsafe { self.cpu_interface.eoir.write(eoi); }
+    }    
 }
 
 /// Enable secure interrupts

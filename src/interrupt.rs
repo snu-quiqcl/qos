@@ -2,7 +2,7 @@ use crate::{println, print};
 use super::env::TrapFrame;
 use core::ffi;
 use crate::io::uart;
-use crate::io::mpcore::Mpcore;
+use crate::io::mpcore;
 
 pub static mut count_isr: u32 = 0;
 
@@ -32,42 +32,26 @@ pub extern "C" fn data_abort(tf: &TrapFrame) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn irq() {
-    let irqid: u32 = irq_acknowledge_interrupt();
+    let mut mpcore = mpcore::Mpcore::get();
+    let irqid: u32 = mpcore.irq_acknowledge_interrupt();
     match irqid {
         82 => { /* Uart */
             const UART_TX_EMPTY: u32 = 0x8;
 
             let mut uart = uart::Uart::get();
-            let uart_irqid = uart.regs.sr.read();
+            let uart_irqid = uart.regs.read_interrupt();
             
             if uart_irqid & UART_TX_EMPTY == UART_TX_EMPTY {
                 unsafe {count_isr += 1;}
                 uart.regs.irq_tx_empty();
-                uart.regs.isr.write(0 << 3); // disable channel status
+                uart.regs.clear_interrupt(UART_TX_EMPTY);
             }
             }, 
         _ => {}
     }
-    irq_end_interrupt(irqid);
+    mpcore.irq_end_interrupt(irqid);
 }
 #[no_mangle]
 pub extern "C" fn fiq(tf: &TrapFrame) {
     println!("fiq");
-}
-
-pub fn irq_acknowledge_interrupt() -> u32 {
-    let mut mpcore = Mpcore::get();
-    let iar_mask: u32 = 0x3ff;
-    let irqid: u32 = mpcore.cpu_interface.iar.read() & iar_mask;
-    irqid
-}
-
-pub fn irq_end_interrupt(irqid: u32) {
-    let mut mpcore = Mpcore::get();
-    let eoi_mask = 0x1c00;
-    let mut eoi: u32 = mpcore.cpu_interface.eoir.read() & eoi_mask;
-    eoi +=  irqid;
-    unsafe {
-        mpcore.cpu_interface.eoir.write(eoi);
-    }
 }

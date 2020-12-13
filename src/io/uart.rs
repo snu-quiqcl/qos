@@ -55,9 +55,7 @@ impl UartRegs {
 
     pub fn macro_write(&mut self, c: u8) {
         // while self.is_tx_full() {} // polling
-        unsafe {
-            self.fifo.write(c as u32);
-        }
+        unsafe { self.fifo.write(c as u32); }
     }
 
     pub fn irq_tx_empty (&mut self) {
@@ -74,20 +72,37 @@ impl UartRegs {
             let tx_len: usize = tx_empty_lock.UART_TX_LENGTH as usize;
             let tx_itr = &tx_str[tx_ran..tx_len];
             for c in tx_itr.bytes() { self.irq_write(c); }
-            unsafe { self.idr.write(1 << 3); } // disable TX_Empty interrupt
+            self.disable_interrupt();
         }
         drop(tx_empty_lock);
     }
 
     pub fn irq_write(&mut self, c: u8) {
-        unsafe {
-            self.fifo.write(c as u32);
-        }
+        unsafe {self.fifo.write(c as u32); }
     }
 
-    pub fn read(&mut self) -> u8 {
-//        while self.is_rx_empty() {} // polling
+    pub fn macro_read(&mut self) -> u8 {
+        // while self.is_rx_empty() {} // polling
         self.fifo.read() as u8
+    }
+
+    pub fn enable_interrupt(&mut self) {
+        unsafe {self.ier.write(1 << 3); } 
+    }
+
+    pub fn disable_interrupt(&mut self) {
+        unsafe {self.idr.write(1 << 3); } 
+    }
+
+    pub fn read_interrupt(&mut self) -> u32 {
+        self.sr.read() as u32
+    }
+
+    pub fn clear_interrupt(&mut self, irq_type: u32) {
+        match irq_type {
+            0x8 => { unsafe {self.isr.write(0 << 3); } },
+            _ => {}
+        }
     }
 }
 
@@ -193,7 +208,7 @@ impl Uart {
         tx_empty_lock.UART_TX_ITERATE = str_len;
         tx_empty_lock.UART_TX_RANGE = 0;
         drop(tx_empty_lock);
-        unsafe { self.regs.ier.write(1 << 3); } // enable TX_Empty interrupt
+        self.regs.enable_interrupt();
     }
 }
 
