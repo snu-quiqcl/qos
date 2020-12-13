@@ -50,25 +50,14 @@ impl UartRegs {
     pub const TX_FIFO: u32 = 64;
 
     pub fn macro_print(&mut self, s: &str) {
-        for c in s.bytes() { self.write(c) }        
+        for c in s.bytes() { self.macro_write(c) }        
     }
 
-    pub fn write(&mut self, c: u8) {
-//        while self.is_tx_full() {} // polling
+    pub fn macro_write(&mut self, c: u8) {
+        // while self.is_tx_full() {} // polling
         unsafe {
             self.fifo.write(c as u32);
         }
-    }
-
-    pub fn write_str(&mut self, s: &'static str) {
-        let str_len: u32 = s.len() as u32;
-        let mut tx_empty_lock = IRQ_TX_EMPTY.lock();
-        tx_empty_lock.UART_TX_STRING = s;
-        tx_empty_lock.UART_TX_LENGTH = str_len;
-        tx_empty_lock.UART_TX_ITERATE = str_len;
-        tx_empty_lock.UART_TX_RANGE = 0;
-        drop(tx_empty_lock);
-        unsafe { self.ier.write(1 << 3); } // enable TX_Empty interrupt
     }
 
     pub fn irq_tx_empty (&mut self) {
@@ -77,17 +66,23 @@ impl UartRegs {
         if tx_empty_lock.UART_TX_ITERATE > Self::TX_FIFO {
             let tx_ran: usize = tx_empty_lock.UART_TX_RANGE as usize;
             let tx_itr = &tx_str[tx_ran..(tx_ran+(Self::TX_FIFO as usize))+1];
-            for c in tx_itr.bytes() { self.write(c); }
+            for c in tx_itr.bytes() { self.irq_write(c); }
             tx_empty_lock.UART_TX_ITERATE -= Self::TX_FIFO;
             tx_empty_lock.UART_TX_RANGE += Self::TX_FIFO;
         } else {
             let tx_ran: usize = tx_empty_lock.UART_TX_RANGE as usize;
             let tx_len: usize = tx_empty_lock.UART_TX_LENGTH as usize;
             let tx_itr = &tx_str[tx_ran..tx_len];
-            for c in tx_itr.bytes() { self.write(c); }
+            for c in tx_itr.bytes() { self.irq_write(c); }
             unsafe { self.idr.write(1 << 3); } // disable TX_Empty interrupt
         }
         drop(tx_empty_lock);
+    }
+
+    pub fn irq_write(&mut self, c: u8) {
+        unsafe {
+            self.fifo.write(c as u32);
+        }
     }
 
     pub fn read(&mut self) -> u8 {
@@ -159,6 +154,7 @@ impl Uart {
         self.regs.cr.write((1 << 1) | 1); // reset TX and RX paths
         self.regs.cr.write((1 << 4) | (1 << 2)) // enable TX and RX paths
     }
+
 /*
     pub unsafe fn config_timeout(&mut self) {
         /* Receiver timeout mechanism
@@ -173,19 +169,6 @@ impl Uart {
 
 */
 
-    pub unsafe fn transmit_fmt(&mut self, args: core::fmt::Arguments) {
-        /* Transmit using interrupt
-        */
-        
-        /*
-        unsafe {
-            self.regs.ier.write(1 << 3); // enable TX_Empty interrupt
-            self.regs.isr.write(1 << 3); // force interrupt
-          }
-        */
-        self.config_init();
-        self.regs.write_fmt(args).unwrap();
-    }
 /*
     pub unsafe receive(&self) {
         /* Receive using interrupt
@@ -201,6 +184,17 @@ impl Uart {
         self.config_trig_lev(0);
         self.enable_ctrl();
        }
+
+    pub fn print(&mut self, s: &'static str) {
+        let str_len: u32 = s.len() as u32;
+        let mut tx_empty_lock = IRQ_TX_EMPTY.lock();
+        tx_empty_lock.UART_TX_STRING = s;
+        tx_empty_lock.UART_TX_LENGTH = str_len;
+        tx_empty_lock.UART_TX_ITERATE = str_len;
+        tx_empty_lock.UART_TX_RANGE = 0;
+        drop(tx_empty_lock);
+        unsafe { self.regs.ier.write(1 << 3); } // enable TX_Empty interrupt
+    }
 }
 
 /// Initialize uart
@@ -214,7 +208,7 @@ pub unsafe fn uart_init() {
 pub fn _print(args: core::fmt::Arguments) {
     unsafe {
         let mut uart = Uart::get();
-        uart.transmit_fmt(args);
+        uart.regs.write_fmt(args).unwrap();
     }
 }
 

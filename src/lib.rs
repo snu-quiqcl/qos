@@ -34,11 +34,11 @@ pub fn init() {
 
         /* println uses polling for debugging issues
            uart.regs.write_str is interrupt-driven */
-        uart.regs.write_str("start------end\n");
+        uart.print("start------end\n");
         println!("num uart_tx interrupt: {}", interrupt::count_isr);
-        uart.regs.write_str("start-----------------------------------------------------end\n");
+        uart.print("start-----------------------------------------------------end\n");
         println!("num uart_tx interrupt: {}", interrupt::count_isr);
-        uart.regs.write_str("start-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------end\n");
+        uart.print("start-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------end\n");
         println!("num uart_tx interrupt: {}", interrupt::count_isr);
 
         env::env_init();       
