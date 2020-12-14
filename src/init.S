@@ -28,21 +28,21 @@ _start:
     msr cpsr_c, #MODE_IRQ
     ldr sp, =_irq_stack /* set IRQ stack*/
     msr cpsr_c, #MODE_SVC
-    xor r0, r0
-    xor r1, r1
-    xor r2, r2
-    xor r3, r3
-    xor r4, r4
-    xor r5, r5
-    xor r6, r6
-    xor r7, r7
-    xor r8, r8
-    xor r9, r9
-    xor r10, r10
-    xor r11, r11
-    xor r12, r12
-    xor r13, r13
-    xor r14, r14
+    eor r0, r0
+    eor r1, r1
+    eor r2, r2
+    eor r3, r3
+    eor r4, r4
+    eor r5, r5
+    eor r6, r6
+    eor r7, r7
+    eor r8, r8
+    eor r9, r9
+    eor r10, r10
+    eor r11, r11
+    eor r12, r12
+    eor r13, r13
+    eor r14, r14
 setup:
 /* Disable interrupts */
 //mrs r1, cpsr
@@ -146,7 +146,9 @@ _irq:
 sub lr, lr, #4
 stmfd sp!, {r0-r12, lr}
 bl irq
-ldmfd sp!, {r0-r12, pc}^
+mov sp, r0
+ldr sp, =_bootstack
+ldmfd r0!, {r0-r12, pc}^    
 
 _fiq:
 b .
