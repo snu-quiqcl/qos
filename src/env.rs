@@ -59,7 +59,6 @@ pub fn env_create(binary: usize) {
     
     unsafe {
         load_icode(new_env, binary);
-        env_run(0);
     }
 }
 
@@ -110,10 +109,10 @@ pub fn env_setup_vm(env: &mut Env) {
 unsafe fn load_icode(env: &mut Env, binary: usize) {
     use crate::elf::{ElfHeader, ProgramHeader};
 
-    let page_table = L1PageTable::get();
 
     let old_pgdir = Vaddr::new(L1PageTable::get() as *mut _ as usize).to_paddr();
     paging::change_pgdir(env.pgdir);
+    let page_table = L1PageTable::get();
     let binary = binary as *mut u8;
     let elf_hdr = &*(binary as *const ElfHeader);
     println!("{:x}", elf_hdr.e_ident[0]);
