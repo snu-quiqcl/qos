@@ -132,8 +132,15 @@ b .
 
 _svc:
 stmfd sp!, {r0-r12, lr}
-add r0, sp, #-12
+msr cpsr_c, #MODE_SYS
+mrs r0, spsr
+mov r1, lr
+mov r2, sp
+msr cpsr_c, #MODE_SVC
+stmfd sp!, {r0-r2}
+mov r0, sp
 bl svc
+add sp, #12
 ldmfd sp!, {r0-r12, pc}^
 
 _prefetch:

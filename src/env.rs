@@ -1,7 +1,7 @@
 use mem::Vaddr;
 use paging::L1PageTable;
 
-use crate::{mem::{self, Paddr, memcpy}, paging::KERN_BASE};
+use crate::{mem::{self, Paddr, memcpy}, paging::{KERN_BASE, change_pgdir}};
 use crate::paging::PAGE_SIZE;
 use crate::{paging, util};
 use crate::{println, print};
@@ -62,14 +62,15 @@ pub fn env_create(binary: usize) {
     }
 }
 
+
+
 pub unsafe fn env_run(id: usize) {
     let envs = get_envs();
-    if let Some(currenv) = CURRENV{
-        if currenv != id {
-            CURRENV = Some(id);
-            paging::change_pgdir(envs.envs[id].pgdir);
-            context_switch(&envs.envs[id].tf);
-        }
+    if CURRENV != Some(id) {
+        CURRENV = Some(id);
+        context_switch(&envs.envs[id].tf);
+        change_pgdir(envs.envs[id].pgdir);
+        println!("Context switch");
     }
     env_pop_tf(&envs.envs[id].tf); 
 }
