@@ -35,9 +35,9 @@ extern "C" {
 
 pub enum EnvType{}
 
-
+pub const NENV:usize = 1024;
 pub struct UserEnv {
-    envs: [Env; 1024]
+    pub envs: [Env; NENV]
 }
 
 pub static mut ENVS:Vaddr = Vaddr{addr:0};
@@ -46,7 +46,7 @@ pub static mut CURRENV:Option<usize> = None;
 pub fn env_init() {
 }
 
-fn get_envs() -> &'static mut UserEnv{
+pub fn get_envs() -> &'static mut UserEnv{
     unsafe {
         &mut *(ENVS.addr as *mut UserEnv)
     }
@@ -70,13 +70,17 @@ pub unsafe fn env_run(id: usize) {
         CURRENV = Some(id);
         context_switch(&envs.envs[id].tf);
         change_pgdir(envs.envs[id].pgdir);
-        println!("Context switch");
     }
     env_pop_tf(&envs.envs[id].tf); 
 }
 
 fn get_free_env() -> usize {
-    0
+    static mut NEXT_FREE:usize = 0;
+    unsafe {
+        let ret = NEXT_FREE;
+        NEXT_FREE += 1;
+        ret
+    }
 }
 
 pub fn env_alloc(parent_id: usize) -> &'static mut Env {

@@ -12,6 +12,7 @@ pub mod interrupt;
 pub mod env;
 pub mod lock;
 pub mod elf;
+pub mod sched;
 
 global_asm!(include_str!("init.S"));
 static USER_PROG:&[u8] = include_bytes!("../usr/shell");
@@ -29,7 +30,7 @@ pub fn init() {
         use mem::memcpy;
         memcpy(user_prog.addr as *mut u8, USER_PROG.as_ptr(), USER_PROG.len());
         env::env_create(user_prog.addr);
-        env::env_run(0);
+        sched::sched_yield();
     }
 }
 

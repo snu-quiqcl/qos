@@ -14,8 +14,8 @@ pub extern "C" fn undefined(tf: &TrapFrame) {
 pub unsafe extern "C" fn svc(tf: &TrapFrame) {
     match tf.reg[0] {
         0 => {
-            let s = tf.reg[1] as *const u8;
-            for i in 0..tf.reg[2] {
+            let s = tf.reg[2] as *const u8;
+            for i in 0..tf.reg[3] {
                 print!("{}", *s.offset(i as isize) as char);
             }
         },
