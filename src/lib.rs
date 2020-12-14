@@ -18,16 +18,13 @@ static USER_PROG:&[u8] = include_bytes!("../usr/shell");
 
 pub fn init() {
     unsafe {
-        io::slcr::slcr_init(); // Map system level control registers
-        
-        io::uart::uart_init();// Initialize uart
         paging::page_init(); // Initialize kernel page mapping
         mem::mem_init(); // Initialize memory allocator
-        
- //       println!("Init slcr");
+        io::slcr::slcr_init(); // Map system level control registers
         io::mpcore::mpcore_init(); // Map mpcore registers
         io::mpcore::gic_init(); // Initialize generic interrupt controller
-        println!("Init gic");
+        io::uart::uart_init();// Initialize uart
+        
 
         /* println uses polling for debugging issues
            uart.print is interrupt-driven */
