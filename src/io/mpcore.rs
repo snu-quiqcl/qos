@@ -1,15 +1,19 @@
 use volatile_register::{RO, RW};
-use crate::paging::map_va_to_device;
+use crate::paging::L1PageTable;
+use crate::mem::Paddr;
 
-pub const _MPCORE_PHYS0: usize = 0xf8f0_0000; // Physical base address of Mpcore (first 4 KB)
-pub const _MPCORE_PHYS1: usize = 0xf8f0_1000; // Physical base address of Mpcore (first 4 KB)
-pub const _MPCORE_VIRT0: usize = 0xfff0_1000; // Virtual base address of Mpcore -> GICC,TimerRegs
-pub const _MPCORE_VIRT1: usize = 0xfff0_2000; // Virtual base address of Mpcore -> GICD,GICPRegs
+pub const MPCORE_PHYS0: usize = 0xf8f0_0000; // Physical base address of Mpcore (first 4 KB)
+pub const MPCORE_PHYS1: usize = 0xf8f0_1000; // Physical base address of Mpcore (first 4 KB)
+pub static mut MPCORE_VIRT0: usize = 0; // Virtual base address of Mpcore -> GICC,TimerRegs
+pub static mut MPCORE_VIRT1: usize = 0; // Virtual base address of Mpcore -> GICD,GICPRegs
 
 /// Map two pages (8 KB) to MPCOREs 
 pub fn mpcore_init() {
-    map_va_to_device(_MPCORE_VIRT0, _MPCORE_PHYS0, 0);
-    map_va_to_device(_MPCORE_VIRT1, _MPCORE_PHYS1, 0);
+    let page_table = L1PageTable::get();
+    unsafe{
+        MPCORE_VIRT0 = page_table.map_device(Paddr::new(MPCORE_PHYS0), 0).addr;
+        MPCORE_VIRT1 = page_table.map_device(Paddr::new(MPCORE_PHYS1), 0).addr;
+    }
 }
 
 #[repr(C)]
@@ -75,20 +79,22 @@ pub struct Mpcore {
     pub peripheral: &'static mut GICPRegs,
 }
 
+pub static mut GICC_BASE: usize = 0;
+pub static mut TIMER_BASE: usize = 0;
+pub static mut GICD_BASE: usize = 0;
+pub static mut GICP_BASE: usize = 0;
+
+
 impl Mpcore{
-    pub const GICC_BASE: *mut GICCRegs = ((_MPCORE_VIRT0 as u32) + 0x0000_0100) as *mut GICCRegs; 
-    pub const TIMER_BASE: *mut TimerRegs = ((_MPCORE_VIRT0 as u32) + 0x0000_0200) as *mut TimerRegs;
-    pub const GICD_BASE: *mut GICDRegs = (_MPCORE_VIRT1 as u32) as *mut GICDRegs;
-    pub const GICP_BASE: *mut GICPRegs = ((_MPCORE_VIRT1 as u32) + 0x0000_0d00) as *mut GICPRegs;
     pub const IAR_MASK: u32 = 0x3ff;
     pub const EOI_MASK: u32 = 0x1c00;
 
     pub fn get() -> Mpcore {
         Mpcore {
-            cpu_interface: unsafe {&mut *(Self::GICC_BASE)},
-            distributor: unsafe {&mut *(Self::GICD_BASE)},
-            timer: unsafe {&mut *(Self::TIMER_BASE)},
-            peripheral: unsafe {&mut *(Self::GICP_BASE)},
+            cpu_interface: unsafe {&mut *(GICC_BASE as *mut _)},
+            distributor: unsafe {&mut *(GICD_BASE as *mut _)},
+            timer: unsafe {&mut *(TIMER_BASE as *mut _)},
+            peripheral: unsafe {&mut *(GICP_BASE as *mut _)},
         }
     }
 
@@ -106,6 +112,10 @@ impl Mpcore{
 
 /// Enable secure interrupts
 pub unsafe fn gic_init() {
+    GICC_BASE = MPCORE_VIRT0 + 0x0000_0100;
+    TIMER_BASE = MPCORE_VIRT0 + 0x0000_0200;
+    GICD_BASE = MPCORE_VIRT1;
+    GICP_BASE = MPCORE_VIRT1 + 0x0000_0d00;
     pub const PRI_LEVEL: u32 = 0xff; // enable all priority levels
     pub const ICR_ENABLE: u32 = 0x1; // enable cpu interface: gicc -> processor
     pub const DCR_ENABLE: u32 = 0x1; // enable distributor

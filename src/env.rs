@@ -1,4 +1,7 @@
-use crate::mem::{self, memcpy};
+use mem::Vaddr;
+use paging::L1PageTable;
+
+use crate::{mem::{self, Paddr, memcpy}, paging::KERN_BASE};
 use crate::paging::PAGE_SIZE;
 use crate::{paging, util};
 use crate::{println, print};
@@ -12,7 +15,7 @@ pub struct Env {
     pub env_type: EnvType,
     pub status: usize,
     pub runs: usize,
-    pub pgdir: usize
+    pub pgdir: Paddr
 }
 
 #[derive(Debug)]
@@ -37,14 +40,15 @@ pub struct UserEnv {
     envs: [Env; 1024]
 }
 
-pub static mut ENVS:usize = 0;
+pub static mut ENVS:Vaddr = Vaddr{addr:0};
+pub static mut CURRENV:Option<usize> = None;
 
 pub fn env_init() {
 }
 
 fn get_envs() -> &'static mut UserEnv{
     unsafe {
-        &mut *(ENVS as *mut UserEnv)
+        &mut *(ENVS.addr as *mut UserEnv)
     }
 }
 
@@ -60,10 +64,15 @@ pub fn env_create(binary: usize) {
 }
 
 pub unsafe fn env_run(id: usize) {
-    let envs = &*(ENVS as *const UserEnv);
-    paging::change_pgdir(envs.envs[id].pgdir);
-    context_switch(&envs.envs[id].tf);
-    env_pop_tf(&envs.envs[id].tf);
+    let envs = get_envs();
+    if let Some(currenv) = CURRENV{
+        if currenv != id {
+            CURRENV = Some(id);
+            paging::change_pgdir(envs.envs[id].pgdir);
+            context_switch(&envs.envs[id].tf);
+        }
+    }
+    env_pop_tf(&envs.envs[id].tf); 
 }
 
 fn get_free_env() -> usize {
@@ -83,16 +92,17 @@ pub fn env_alloc(parent_id: usize) -> &'static mut Env {
 }
 
 pub fn env_setup_vm(env: &mut Env) {
-    let current = mem::fn_to_pa(mem::alloc_frame(0, 0));
-    let padding = (util::round_up(current, PAGE_SIZE * 4)-current)/PAGE_SIZE;
+    let current = mem::alloc_frame(0, 0).addr;
+    let padding = util::round_up(current, PAGE_SIZE * 4)-current;
 
-    env.pgdir = mem::fn_to_pa(mem::alloc_frame(padding + 4, 0));
-    env.pgdir = util::round_up(env.pgdir, PAGE_SIZE * 4);
+    env.pgdir = mem::alloc_frame(padding + 4 *PAGE_SIZE, 0).to_paddr();
+    env.pgdir.addr = util::round_up(env.pgdir.addr, PAGE_SIZE * 4);
     unsafe {
-        let pgdir = mem::pa_to_va(env.pgdir) as *mut u8;
+        let pgdir = (env.pgdir.addr ^ KERN_BASE) as *mut u8;
         let offset = (paging::UTOP/paging::SECTION_SIZE) as isize;
+        let current_page = L1PageTable::get();
         memcpy(pgdir,
-            paging::get_page_table() as *const _ as *const u8, 
+            current_page as *const _ as *const u8, 
             PAGE_SIZE * 4);
     }
 }
@@ -100,7 +110,10 @@ pub fn env_setup_vm(env: &mut Env) {
 unsafe fn load_icode(env: &mut Env, binary: usize) {
     use crate::elf::{ElfHeader, ProgramHeader};
 
-    let old_pgdir = paging::change_pgdir(env.pgdir);
+    let page_table = L1PageTable::get();
+
+    let old_pgdir = Vaddr::new(L1PageTable::get() as *mut _ as usize).to_paddr();
+    paging::change_pgdir(env.pgdir);
     let binary = binary as *mut u8;
     let elf_hdr = &*(binary as *const ElfHeader);
     println!("{:x}", elf_hdr.e_ident[0]);
@@ -108,6 +121,7 @@ unsafe fn load_icode(env: &mut Env, binary: usize) {
         panic!("Not a valid elf");
     }
     let prog_hdr = binary.offset(elf_hdr.e_phoff as isize) as *const ProgramHeader;
+    
     for ph_num in 0..elf_hdr.e_phnum {
         let ph = &*prog_hdr.offset(ph_num as isize);
         if ph.p_type != 1 {
@@ -116,15 +130,22 @@ unsafe fn load_icode(env: &mut Env, binary: usize) {
         println!("Load to {:x} ({:x} bytes)", ph.p_paddr, ph.p_filesz);
         let start = util::round_down(ph.p_paddr as usize, PAGE_SIZE);
         let end = util::round_up((ph.p_paddr + ph.p_memsz) as usize, PAGE_SIZE);
+        let mut va = Vaddr::new(start);
         let num_frames = (end-start) / PAGE_SIZE;
-        let frame_number = mem::alloc_frame(num_frames, 1);
+        let mut pa = mem::alloc_frame(num_frames, 1).to_paddr();
+        
         for i in 0..num_frames {
-            paging::map_va_to_fn(start+PAGE_SIZE*i, frame_number+i, paging::USER_FLAG);
+            page_table.map_va2pa(va,
+                pa,
+                paging::USER_FLAG);
+            va.addr += PAGE_SIZE;
+            pa.addr += PAGE_SIZE;
         }
         memcpy(ph.p_paddr as *mut u8, binary.offset(ph.p_offset as isize), ph.p_filesz as usize);
     }
-    let user_stack = mem::alloc_frame(1, 0);
-    paging::map_va_to_fn(paging::USTACK - PAGE_SIZE, user_stack, paging::USER_FLAG);
+    let user_stack = mem::alloc_frame(PAGE_SIZE, 0);
+    page_table.map_va2pa(Vaddr::new(paging::USTACK - PAGE_SIZE), 
+    user_stack.to_paddr(), paging::USER_FLAG);
 
     env.tf.pc = elf_hdr.e_entry as usize;
     env.tf.sp = paging::USTACK;

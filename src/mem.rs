@@ -46,9 +46,9 @@
 
 
 
-extern crate compiler_builtins;
 use crate::env::{UserEnv, ENVS};
-use crate::{println, print};
+use crate::util::round_up;
+
 
 pub unsafe fn memset(dest: *mut u8, value: u8, size: usize) {
     for i in 0..(size as isize) {
@@ -69,49 +69,38 @@ extern "C" {
     static _kern_pgdir: usize;
 }
 
+/// Kernel virtual memory
 #[derive(Clone, Copy, Debug)]
 pub struct Vaddr {
     pub addr: usize
 }
+
+impl Vaddr {
+    pub fn new(addr: usize) -> Self {
+        Vaddr { addr }
+    }
+    pub fn to_paddr(&self) -> Paddr {
+        Paddr::new(self.addr ^ KERN_BASE)
+    }
+}
+
+/// Physical memory
 #[derive(Clone, Copy, Debug)]
 pub struct Paddr {
     pub addr: usize
 }
 
+impl Paddr {
+    pub fn new(addr: usize) -> Self {
+        Paddr { addr }
+    }
+    pub fn to_vaddr(&self) -> Vaddr {
+        Vaddr::new(self.addr ^ KERN_BASE)
+    }
+}
+
 use super::paging::{KERN_BASE, PAGE_SIZE};
-static mut next: usize = 0;
-
-
-#[inline(always)]
-pub fn va_to_fn(va: usize) -> usize{
-    assert!(va >= KERN_BASE); // Check va is valid
-    (va - KERN_BASE) / PAGE_SIZE
-}
-
-#[inline(always)]
-pub fn fn_to_va(frame_number: usize) -> usize {
-    frame_number * PAGE_SIZE + KERN_BASE
-}
-
-#[inline(always)]
-pub fn va_to_pa(va: usize) -> usize {
-    va ^ KERN_BASE
-}
-
-#[inline(always)]
-pub fn pa_to_va(pa: usize) -> usize {
-    pa ^ KERN_BASE
-}
-
-#[inline(always)]
-pub fn pa_to_fn(pa: usize) -> usize {
-    pa / PAGE_SIZE
-}
-
-#[inline(always)]
-pub fn fn_to_pa(frame_number: usize) -> usize {
-    frame_number * PAGE_SIZE
-}
+static mut NEXT: usize = 0;
 
 /// Initialize bss and
 /// physical frame allocator.
@@ -125,27 +114,23 @@ pub unsafe fn mem_init() {
     // bootstack is end of kernel
     let mut end = &_bootstack as *const usize as usize;
 
-    // ------ Init user env array ------
-    let envs = &mut *(boot_alloc(&mut end, 
-        size_of::<UserEnv>()) as *mut UserEnv);        
-    ENVS = envs as *mut _ as usize;
-
-    // Get first free memory
-   next = va_to_fn(boot_alloc(&mut end, 0));
+    // Alloc user env array
+    ENVS = boot_alloc(&mut end, size_of::<UserEnv>());
+    NEXT = end;
 }
 
 /// Allocate a physical frame
 /// Panic if allocation failed
-pub fn alloc_frame(num_frames: usize, flag: u32) -> usize {
+pub fn alloc_frame(len: usize, flag: u32) -> Vaddr {
     let ret;
     unsafe {
-        ret = next;
-        next += num_frames;
+        ret = NEXT;
+        NEXT += round_up(len, PAGE_SIZE);
         if flag & 1 != 0 {   
-            memset(fn_to_va(ret) as *mut u8, 0, num_frames*PAGE_SIZE);
+            memset(ret as *mut u8, 0, len);
         }
     }
-    ret
+    Vaddr::new(ret)
 }
 
 /// Do nothing
@@ -154,11 +139,10 @@ pub fn free_frame(frame_number: usize) {
 
 /// Allocator for initial setup
 /// allocate static kernel memory
-unsafe fn boot_alloc(next_free: &mut usize, size: usize) -> usize {
-    use crate::{util::round_up};
+unsafe fn boot_alloc(next_free: &mut usize, size: usize) -> Vaddr {
     let ret = *next_free;
     *next_free = round_up(*next_free + size, PAGE_SIZE);
     memset(ret as *mut u8, 0, size);
-    ret
+    Vaddr::new(ret)
 }
 
