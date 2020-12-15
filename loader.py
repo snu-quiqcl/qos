@@ -46,6 +46,10 @@ if __name__ == '__main__':
     boot(ser, file_name)
 
     while True:
-        print(ser.read().decode('utf-8'), end='')
+        msg = ser.read()
+        try:
+            print(msg.decode('utf-8'), end='')
+        except UnicodeDecodeError:
+            print(msg)
     
     ser.close()

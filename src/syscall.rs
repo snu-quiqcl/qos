@@ -46,7 +46,6 @@ pub fn dispatch_syscall(tf: &TrapFrame) {
             println!("Sys read");
         }, 
         Syscall::Yield => {
-            println!("sched yield");
             let env = env::get_current_env().unwrap();
             let envs = env::get_envs();
             envs.envs[env].status = EnvStatus::Runnable;
@@ -59,11 +58,7 @@ pub fn dispatch_syscall(tf: &TrapFrame) {
             println!("Sys exec");
         }
         Syscall::Exit => {
-            let env = env::get_current_env().unwrap();
-            let envs = env::get_envs();
-            envs.envs[env].status = EnvStatus::Dying;
-            println!("env[{}] dead", envs.envs[env].id);
-            sched::sched_yield();
+            env::env_destroy(env::get_current_env().unwrap());
         }
         _ => {
             println!("Worng syscall num");
