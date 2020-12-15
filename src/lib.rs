@@ -12,41 +12,26 @@ pub mod interrupt;
 pub mod env;
 pub mod lock;
 pub mod elf;
+pub mod sched;
+pub mod syscall;
 
 global_asm!(include_str!("init.S"));
 static USER_PROG:&[u8] = include_bytes!("../usr/shell");
 
 pub fn init() {
     unsafe {
-        let mut uart = io::uart::Uart::get();
-        io::uart::uart_init();// Initialize uart
-        println!("Init uart");      
-        paging::page_init(); // Initialize kernel page mapping
-        println!("Init page");
         mem::mem_init(); // Initialize memory allocator
-        println!("Init allocator");
- //       io::slcr::slcr_init(); // Map system level control registers
- //       println!("Init slcr");
+        paging::page_init(); // Initialize kernel page mapping
+        io::slcr::slcr_init(); // Map system level control registers
         io::mpcore::mpcore_init(); // Map mpcore registers
-        println!("Init mpcore");
         io::mpcore::gic_init(); // Initialize generic interrupt controller
-        println!("Init gic");
-
-        /* println uses polling for debugging issues
-           uart.print is interrupt-driven */
-        uart.print("start------end\n");
-        println!("num uart_tx interrupt: {}", interrupt::count_isr);
-        uart.print("start-----------------------------------------------------end\n");
-        println!("num uart_tx interrupt: {}", interrupt::count_isr);
-        uart.print("start-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------end\n");
-        println!("num uart_tx interrupt: {}", interrupt::count_isr);
-
-        env::env_init();       
-        let user_prog = mem::fn_to_va(mem::alloc_frame(3, 0));
+        io::uart::uart_init();// Initialize uart
+        env::env_init();
+        let user_prog = mem::alloc_frame(3, 0);
         use mem::memcpy;
-        memcpy(user_prog as *mut u8, USER_PROG.as_ptr(), USER_PROG.len());
-        env::env_create(user_prog);
-        
+        memcpy(user_prog.addr as *mut u8, USER_PROG.as_ptr(), USER_PROG.len());
+        env::env_create(user_prog.addr);
+        sched::sched_yield();
     }
 }
 

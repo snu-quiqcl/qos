@@ -18,9 +18,66 @@ const TABLE_MASK: usize = 0x1;
 
 pub const USER_FLAG:usize = 1<<5;
 
+pub use mem::{Vaddr, Paddr};
+
+
 #[repr(C)]
 pub struct L1PageTable {
     pub entries: [L1TableEntry; 4096],
+}   
+
+static mut MMIO_BASE: usize = KERN_BASE - 16 * SECTION_SIZE;
+
+impl L1PageTable {
+    pub fn map_va2pa(&mut self, va: Vaddr, pa: Paddr, flag: usize) {
+        let directory = &mut self.entries[va.addr/SECTION_SIZE];
+        let va = va.addr;
+        let pa= pa.addr;
+        if directory.is_section() {
+            panic!("Attempt {:x}-> {:x}: Can't remap section", va, pa);
+        } else if directory.is_table() {
+        } else {
+            let data = alloc_frame(PAGE_SIZE, 1).to_paddr().addr | 0x1;
+            *directory = L1TableEntry{ data};
+        }
+        let l2_table = directory.get_l2_table();
+        l2_table.entries[(va&!DIRECTORY_MASK)/PAGE_SIZE] = L2TableEntry { data: L2_ADDR_MASK&pa | flag | 0x89e};
+    
+    }
+
+    pub fn map_device(&mut self, pa: Paddr, flag: usize) -> Vaddr {
+        let va;
+        let pa = pa.addr;
+        unsafe {
+            va = MMIO_BASE;
+            MMIO_BASE += PAGE_SIZE;
+        }
+        let directory = &mut self.entries[va/SECTION_SIZE];
+        
+        if directory.is_section() {
+            panic!("Attempt {:x}-> {:x}: Can't remap section", va, pa);
+        } else if directory.is_table() {
+    
+        } else {
+            *directory = L1TableEntry{ data: alloc_frame(PAGE_SIZE, 1).to_paddr().addr
+                | 0x1};
+        }
+        let l2_table = directory.get_l2_table();
+        l2_table.entries[(va&!DIRECTORY_MASK)/PAGE_SIZE] = L2TableEntry { data: L2_ADDR_MASK&pa | flag | 0x813};   
+        
+        Vaddr::new(va)
+    }
+
+    pub fn get() -> &'static mut Self {
+        let kern_pgdir_addr = crate::reg::TTBR0::read() as usize;
+        let kern_pgdir_addr = kern_pgdir_addr | KERN_BASE;
+        let kern_pgdir;
+        unsafe {
+            kern_pgdir = &mut *(kern_pgdir_addr as *mut L1PageTable);
+        }
+        kern_pgdir
+    }
+    
 }
 
 #[repr(C)]
@@ -43,10 +100,9 @@ impl L1TableEntry {
 
     fn get_l2_table(&self) -> &mut L2PageTable {
         unsafe {
-            &mut *(pa_to_va((self.data & TABLE_ADDR_MASK))  as *mut L2PageTable)
+            &mut *(((self.data & TABLE_ADDR_MASK) ^ KERN_BASE)  as *mut L2PageTable)
         }
     }
-
 }
 
 #[repr(C)]
@@ -58,25 +114,11 @@ pub struct L2TableEntry {
     data: usize
 }
 
-pub fn get_page_table() -> &'static mut L1PageTable {
-    let kern_pgdir_addr = crate::reg::TTBR0::read() as usize;
-
-    let kern_pgdir_addr = kern_pgdir_addr | KERN_BASE;
-
-
-    let kern_pgdir;
-    unsafe {
-        kern_pgdir = &mut *(kern_pgdir_addr as *mut L1PageTable);
-    }
-    kern_pgdir
-}
 
 /// Map [3G, 4G-1M) => [0, 1G-1M]
 pub unsafe fn page_init() {
-    let kern_pgdir = get_page_table();
-    
+    let kern_pgdir = L1PageTable::get();
     let entries = &mut kern_pgdir.entries;
-
     let mut i = 0;
     mem::memset(entries as *mut _ as *mut u8, 0, 1024*3*4);
     let offset = KERN_BASE / (1024*1024); 
@@ -85,53 +127,17 @@ pub unsafe fn page_init() {
         i += 1;
     }
 }
-pub use mem::Vaddr;
 
 fn directory_index(va: Vaddr) -> usize{
     va.addr / SECTION_SIZE
 }
 
-use crate::mem::{alloc_frame, fn_to_pa, pa_to_va};
+use crate::mem::alloc_frame;
 
-
-/// For normal memory only, use map_va_to_device otherwise.
-pub fn map_va_to_fn(va: usize, frame_number: usize, flag: usize) {
-    let page_table = get_page_table();
-    let directory = &mut page_table.entries[va/SECTION_SIZE];
-    let pa = frame_number * PAGE_SIZE;
-    if directory.is_section() {
-        panic!("Attempt {:x}-> {:x}: Can't remap section", va, pa);
-    } else if directory.is_table() {
-    } else {
-        let data = fn_to_pa(alloc_frame(1, 1)) | 0x1;
-        *directory = L1TableEntry{ data};
-    }
-    let l2_table = directory.get_l2_table();
-    l2_table.entries[(va&!DIRECTORY_MASK)/PAGE_SIZE] = L2TableEntry { data: L2_ADDR_MASK&pa | flag | 0x89e};
-}
-
-
-/// Map va to pa (device address) set memory attribute sharable device
-pub fn map_va_to_device(va: usize, pa: usize, flag: usize) {
-    let page_table = get_page_table();
-    let directory = &mut page_table.entries[va/SECTION_SIZE];
-    
-    if directory.is_section() {
-        panic!("Attempt {:x}-> {:x}: Can't remap section", va, pa);
-    } else if directory.is_table() {
-
-    } else {
-        *directory = L1TableEntry{ data: fn_to_pa(alloc_frame(1, 1)) | 0x1};
-    }
-    let l2_table = directory.get_l2_table();
-    l2_table.entries[(va&!DIRECTORY_MASK)/PAGE_SIZE] = L2TableEntry { data: L2_ADDR_MASK&pa | flag | 0x813};
-}
 
 /// return physical address of old pgdir
-pub unsafe fn change_pgdir(addr: usize) -> usize {
-    let old_pgdir = mem::va_to_pa(get_page_table() as *const _ as usize);
-    crate::reg::TTBR0::write(addr);
-    old_pgdir
+pub unsafe fn change_pgdir(pa: Paddr) {
+    crate::reg::TTBR0::write(pa.addr);
 }
 
 pub fn list_pgdir(pgdir: &L1PageTable) {

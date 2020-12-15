@@ -1,12 +1,15 @@
 use volatile_register::{RO, RW};
-use crate::paging::map_va_to_device;
 
-pub const _SLCR_PHYS: usize = 0xf800_0000; // Physical base address of System Level Control registers (SLCRs)
-pub const _SLCR_VIRT: usize = 0xfff0_3000; // Virtual base address of SLCRs -> SlcrRegs
+use crate::{mem::Paddr, paging::L1PageTable};
+
+pub const SLCR_PHYS: usize = 0xf800_0000; // Physical base address of System Level Control registers (SLCRs)
+pub static mut SLCR_VIRT: usize = 0; // Virtual base address of SLCRs -> SlcrRegs
 
 /// Map a page (4 KB) to SLCRs 
-pub fn slcr_init() {
-    map_va_to_device(_SLCR_VIRT, _SLCR_PHYS, 0);
+pub unsafe fn slcr_init() {
+    let page_table = L1PageTable::get();
+    SLCR_VIRT = page_table.map_device(Paddr::new(SLCR_PHYS), 0).addr;
+    SLCR_BASE = SLCR_VIRT;
 }
 
 #[repr(C)]
@@ -85,12 +88,12 @@ pub struct Slcr {
     regs: &'static mut SlcrRegs,
 }
 
+static mut SLCR_BASE: usize = 0;
 impl Slcr {
-    pub const SLCR_BASE: *mut SlcrRegs = _SLCR_VIRT as *mut SlcrRegs;
 
     pub fn get() -> Slcr {
         Slcr {
-            regs: unsafe {&mut *(Self::SLCR_BASE)},
+            regs: unsafe {&mut *(SLCR_BASE as *mut _)},
         }
     }
 

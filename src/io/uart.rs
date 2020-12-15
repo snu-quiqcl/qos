@@ -1,8 +1,7 @@
 use volatile_register::{RO, RW};
 use core::fmt::Write;
-use crate::io::slcr;
-use crate::paging::KERN_BASE;
-use crate::{println, print};
+use crate::{io::slcr, mem::Paddr};
+use crate::paging::{KERN_BASE, L1PageTable};
 use lazy_static::lazy_static;
 use spin::Mutex;
 
@@ -118,17 +117,20 @@ pub struct Uart {
     pub regs: &'static mut UartRegs,
 }
 
+static mut UART_BASE: usize = 0;
+
 impl Uart {
-    pub const UART_BASE: *mut UartRegs = _UART_VIRT as *mut UartRegs;
 
     pub fn get() -> Uart {
         Uart {
-            regs: unsafe {&mut *(Self::UART_BASE)}
+            regs: unsafe {&mut *(UART_BASE as *mut UartRegs)}
         }
     }
 
     pub fn rst_clk(&self) {
-        if (slcr::_SLCR_VIRT) ^ KERN_BASE != slcr::_SLCR_PHYS { return } // check if Slcr has been mapped
+        unsafe {
+            if (slcr::SLCR_VIRT) ^ KERN_BASE != slcr::SLCR_PHYS { return } // check if Slcr has been mapped
+        }
         let mut slcr = slcr::Slcr::get();
         unsafe{
             slcr.set_uart_1();
@@ -215,6 +217,7 @@ impl Uart {
 /// Initialize uart
 /// Reference: Zynq-7000 SOC TRM
 pub unsafe fn uart_init() {
+    UART_BASE = L1PageTable::get().map_device(Paddr::new(_UART_PHYS), 0).addr;
     let mut uart = Uart::get();
     uart.config_init();
 }

@@ -28,21 +28,21 @@ _start:
     msr cpsr_c, #MODE_IRQ
     ldr sp, =_irq_stack /* set IRQ stack*/
     msr cpsr_c, #MODE_SVC
-    mov r0, #0
-    mov r1, #0
-    mov r2, #0
-    mov r3, #0
-    mov r4, #0
-    mov r5, #0
-    mov r6, #0
-    mov r7, #0
-    mov r8, #0
-    mov r9, #0
-    mov r10, #0
-    mov r11, #0
-    mov r12, #0
-    mov r13, #0
-    mov r14, #0
+    eor r0, r0
+    eor r1, r1
+    eor r2, r2
+    eor r3, r3
+    eor r4, r4
+    eor r5, r5
+    eor r6, r6
+    eor r7, r7
+    eor r8, r8
+    eor r9, r9
+    eor r10, r10
+    eor r11, r11
+    eor r12, r12
+    eor r13, r13
+    eor r14, r14
 setup:
 /* Disable interrupts */
 //mrs r1, cpsr
@@ -132,8 +132,15 @@ b .
 
 _svc:
 stmfd sp!, {r0-r12, lr}
-add r0, sp, #-12
+msr cpsr_c, #MODE_SYS
+mrs r0, spsr
+mov r1, lr
+mov r2, sp
+msr cpsr_c, #MODE_SVC
+stmfd sp!, {r0-r2}
+mov r0, sp
 bl svc
+add sp, #12
 ldmfd sp!, {r0-r12, pc}^
 
 _prefetch:
@@ -146,7 +153,9 @@ _irq:
 sub lr, lr, #4
 stmfd sp!, {r0-r12, lr}
 bl irq
-ldmfd sp!, {r0-r12, pc}^
+mov sp, r0
+ldr sp, =_bootstack
+ldmfd r0!, {r0-r12, pc}^    
 
 _fiq:
 b .
