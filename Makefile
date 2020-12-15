@@ -7,6 +7,10 @@ endif
 all:
 	cargo build $(CARGOFLAG)
 	cargo objdump $(CARGOFLAG) -- -D > target/kern.obj
+
+shell: usr/main.c
+	$(CC) -Tusr/link.x -nostdlib usr/main.c usr/syscall.S -o usr/shell
+
 gdb: all
 	gdb-multiarch $(KERNEL)
 qemu: all

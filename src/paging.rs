@@ -138,6 +138,8 @@ use crate::mem::alloc_frame;
 /// return physical address of old pgdir
 pub unsafe fn change_pgdir(pa: Paddr) {
     crate::reg::TTBR0::write(pa.addr);
+    // TLB flush
+    asm!("MCR p15, 0, r0, c8, c5, 0")
 }
 
 pub fn list_pgdir(pgdir: &L1PageTable) {
