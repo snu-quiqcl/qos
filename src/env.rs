@@ -18,7 +18,7 @@ pub struct Env {
     pub pgdir: Paddr
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 #[repr(C)]
 pub struct TrapFrame {
     pub spsr: usize,
@@ -156,4 +156,8 @@ unsafe fn load_icode(env: &mut Env, binary: usize) {
     env.tf.lr = 0;
 
     paging::change_pgdir(old_pgdir);
+}
+
+pub fn get_current_env() -> Option<usize>{
+    unsafe {CURRENV}
 }

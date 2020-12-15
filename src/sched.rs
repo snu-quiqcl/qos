@@ -1,11 +1,10 @@
-use env::{CURRENV};
+use env::{get_current_env};
 
 use crate::env;
 pub fn sched_yield() {
     let envs = env::get_envs();
-    let current_env;
+    let current_env = get_current_env();
     let mut idle = None;
-    unsafe { current_env = CURRENV; }
     match current_env {
         Some(id) => {
             idle = Some(id);

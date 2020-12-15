@@ -13,6 +13,7 @@ pub mod env;
 pub mod lock;
 pub mod elf;
 pub mod sched;
+pub mod syscall;
 
 global_asm!(include_str!("init.S"));
 static USER_PROG:&[u8] = include_bytes!("../usr/shell");

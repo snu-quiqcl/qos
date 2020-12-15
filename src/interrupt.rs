@@ -3,6 +3,8 @@ use super::env::TrapFrame;
 use core::ffi;
 use crate::io::uart;
 use crate::io::mpcore;
+use crate::env::{self, get_envs};
+use crate::syscall;
 
 pub static mut count_isr: u32 = 0;
 
@@ -12,15 +14,8 @@ pub extern "C" fn undefined(tf: &TrapFrame) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn svc(tf: &TrapFrame) {
-    match tf.reg[0] {
-        0 => {
-            let s = tf.reg[2] as *const u8;
-            for i in 0..tf.reg[3] {
-                print!("{}", *s.offset(i as isize) as char);
-            }
-        },
-        _ => {}
-    }
+    get_envs().envs[env::get_current_env().unwrap()].tf = *tf;
+    syscall::dispatch_syscall(tf);
 }
 #[no_mangle]
 pub extern "C" fn prefetch_abort(tf: &TrapFrame) {
