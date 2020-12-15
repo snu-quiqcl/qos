@@ -46,7 +46,7 @@ SECTIONS
     _bootstack = .;
    
     . = ALIGN(4k);
-    . = . + 1K;
+    . = . + 4K;
     _irq_stack = .; 
 
 

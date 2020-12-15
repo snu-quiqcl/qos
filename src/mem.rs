@@ -67,6 +67,7 @@ extern "C" {
     static _bss_start: usize;
     static _bss_end: usize;
     static _kern_pgdir: usize;
+    static _irq_stack: usize;
 }
 
 /// Kernel virtual memory
@@ -112,7 +113,7 @@ pub unsafe fn mem_init() {
     memset(bss_start as *mut u8, 0, bss_end - bss_start);
 
     // bootstack is end of kernel
-    let mut end = &_bootstack as *const usize as usize;
+    let mut end = &_irq_stack as *const usize as usize;
 
     // Alloc user env array
     ENVS = boot_alloc(&mut end, size_of::<UserEnv>());

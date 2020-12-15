@@ -153,9 +153,7 @@ _irq:
 sub lr, lr, #4
 stmfd sp!, {r0-r12, lr}
 bl irq
-mov sp, r0
-ldr sp, =_bootstack
-ldmfd r0!, {r0-r12, pc}^    
+ldmfd sp!, {r0-r12, pc}^    
 
 _fiq:
 b .
