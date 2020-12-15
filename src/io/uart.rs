@@ -195,10 +195,10 @@ impl Uart {
 
     pub unsafe fn config_init(&mut self){
         //if self.regs.cr.read() & (1<<4) != 0 { return } // check if transmit bit is disabled
-        self.rst_clk();
-        self.config_frame(0, 0, 3, 0, 0); // no parity
-        self.config_baud(651, 15); // reset value
-        self.config_trig_lev(0);
+        //self.rst_clk();
+        //self.config_frame(0, 0, 3, 0, 0); // no parity
+        //self.config_baud(651, 15); // reset value
+        //self.config_trig_lev(0);
         self.enable_ctrl();
        }
 

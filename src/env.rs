@@ -1,5 +1,6 @@
 use mem::Vaddr;
 use paging::L1PageTable;
+use crate::sched;
 
 use crate::{mem::{self, Paddr, memcpy}, paging::{KERN_BASE, change_pgdir}};
 use crate::paging::PAGE_SIZE;
@@ -110,6 +111,20 @@ pub fn env_alloc(parent_id: usize) -> &'static mut Env {
 
     env_setup_vm(new_env);
     new_env
+}
+
+pub fn env_destroy(env: usize) {
+    let envs = get_envs();
+    let current_env = get_current_env().unwrap();
+    envs.envs[env].status = EnvStatus::Free;
+    env_free(env);
+    if (current_env == env) {
+        sched::sched_yield();
+    }
+}
+
+pub fn env_free(env: usize) {
+    println!("Free env {}", env);
 }
 
 pub fn env_setup_vm(env: &mut Env) {
