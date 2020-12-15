@@ -1,25 +1,29 @@
-use crate::env::TrapFrame;
+use crate::env::{self,TrapFrame, EnvStatus};
+use crate::sched::{self};
 use crate::{println, print};
 
 #[repr(C)]
+#[derive(Debug)]
 pub enum Syscall {
-    SysWrite,
-    SysRead,
-    SysYield,
-    SysFork,
-    SysExec,
-    SysUnkown,
+    Write,
+    Read,
+    Yield,
+    Fork,
+    Exec,
+    Exit,
+    Unkown,
 }
 
 impl Syscall {
     pub fn new(num: usize) -> Self{
         match num {
-            0 => Self::SysWrite,
-            1 => Self::SysRead,
-            2 => Self::SysYield,
-            3 => Self::SysFork,
-            4 => Self::SysExec,
-            _ => Self::SysUnkown,
+            0 => Self::Write,
+            1 => Self::Read,
+            2 => Self::Yield,
+            3 => Self::Fork,
+            4 => Self::Exec,
+            5 => Self::Exit,
+            _ => Self::Unkown,
         }
     }
 }
@@ -28,7 +32,7 @@ impl Syscall {
 pub fn dispatch_syscall(tf: &TrapFrame) {
     let syscall_num = Syscall::new(tf.reg[0]);
     match syscall_num {
-        SYS_WRITE => {
+        Syscall::Write => {
             let fd = tf.reg[1];
             let s = tf.reg[2] as *const u8;
             let len = tf.reg[3];
@@ -38,20 +42,32 @@ pub fn dispatch_syscall(tf: &TrapFrame) {
                 }
             }
         },
-        SYS_READ => {
+        Syscall::Read => {
             println!("Sys read");
         }, 
-        SYS_YIELD => {
-            println!("Sys yield");
+        Syscall::Yield => {
+            println!("sched yield");
+            let env = env::get_current_env().unwrap();
+            let envs = env::get_envs();
+            envs.envs[env].status = EnvStatus::Runnable;
+            sched::sched_yield();
         },
-        SYS_FORK => {
+        Syscall::Fork => {
             println!("Sys fork");
         },
-        SYS_EXEC => {
+        Syscall::Exec => {
             println!("Sys exec");
+        }
+        Syscall::Exit => {
+            let env = env::get_current_env().unwrap();
+            let envs = env::get_envs();
+            envs.envs[env].status = EnvStatus::Dying;
+            println!("env[{}] dead", envs.envs[env].id);
+            sched::sched_yield();
         }
         _ => {
             println!("Worng syscall num");
+            loop {}
         }
     }
 }

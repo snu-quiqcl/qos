@@ -132,8 +132,8 @@ b .
 
 _svc:
 stmfd sp!, {r0-r12, lr}
-msr cpsr_c, #MODE_SYS
 mrs r0, spsr
+msr cpsr_c, #MODE_SYS
 mov r1, lr
 mov r2, sp
 msr cpsr_c, #MODE_SVC

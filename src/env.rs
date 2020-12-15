@@ -13,9 +13,18 @@ pub struct Env {
     pub id: usize,
     pub parent_id: usize,
     pub env_type: EnvType,
-    pub status: usize,
+    pub status: EnvStatus,
     pub runs: usize,
     pub pgdir: Paddr
+}
+
+#[derive(PartialEq)]
+pub enum EnvStatus {
+    Free,
+    Dying,
+    Running,
+    Runnable,
+    NotRunnable,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -44,6 +53,10 @@ pub static mut ENVS:Vaddr = Vaddr{addr:0};
 pub static mut CURRENV:Option<usize> = None;
 
 pub fn env_init() {
+    let envs = get_envs();
+    for env in envs.envs.iter_mut() {
+        env.status = EnvStatus::Free;
+    }
 }
 
 pub fn get_envs() -> &'static mut UserEnv{
@@ -56,6 +69,7 @@ pub fn get_envs() -> &'static mut UserEnv{
 /// Create first user env
 pub fn env_create(binary: usize) {
     let new_env = env_alloc(0);
+    println!("new env[{}]", new_env.id);
     
     unsafe {
         load_icode(new_env, binary);
@@ -85,10 +99,13 @@ fn get_free_env() -> usize {
 
 pub fn env_alloc(parent_id: usize) -> &'static mut Env {
     let envs = get_envs();
+    let new_id = get_free_env();
+    let new_env = &mut envs.envs[new_id];
 
-    let new_env = &mut envs.envs[get_free_env()];
     new_env.tf.spsr = 0x10;
+    new_env.id = new_id;
     new_env.parent_id = parent_id;
+    new_env.status = EnvStatus::Runnable;
 
 
     env_setup_vm(new_env);
@@ -120,7 +137,6 @@ unsafe fn load_icode(env: &mut Env, binary: usize) {
     let page_table = L1PageTable::get();
     let binary = binary as *mut u8;
     let elf_hdr = &*(binary as *const ElfHeader);
-    println!("{:x}", elf_hdr.e_ident[0]);
     if elf_hdr.e_ident[0] != 0x464c457f{
         panic!("Not a valid elf");
     }
@@ -131,7 +147,6 @@ unsafe fn load_icode(env: &mut Env, binary: usize) {
         if ph.p_type != 1 {
             continue;
         }
-        println!("Load to {:x} ({:x} bytes)", ph.p_paddr, ph.p_filesz);
         let start = util::round_down(ph.p_paddr as usize, PAGE_SIZE);
         let end = util::round_up((ph.p_paddr + ph.p_memsz) as usize, PAGE_SIZE);
         let mut va = Vaddr::new(start);

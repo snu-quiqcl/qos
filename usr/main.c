@@ -6,17 +6,27 @@ enum syscalls {
     SYS_YIELD,
     SYS_FORK,
     SYS_EXEC,
+    SYS_EXIT,
 };
 
 void write(int fd, char* s, int len) {
     syscall(SYS_WRITE, fd, s, len);
 }
 
-void _start() {
-    char *s = "Hello\n";
-
-    write(1, s, 6);
-    write(1, s, 6);
-    while (1);
+void yield() {
+    syscall(SYS_YIELD);
 }
 
+void exit(int exit_code) {
+    syscall(SYS_EXIT, exit_code);
+    while(1);
+}
+
+void _start() {
+    char *s = "Hello\n";
+    write(1, s, 6);
+    yield();
+    s = "Hello2\n";
+    write(1, s, 7);
+    exit(0);
+}
