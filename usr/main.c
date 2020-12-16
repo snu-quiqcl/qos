@@ -24,9 +24,15 @@ void exit(int exit_code) {
 
 void _start() {
     char *s = "Hello\n";
-    write(1, s, 6);
+    
     yield();
     s = "Hello2\n";
     write(1, s, 7);
+    while (1)
+    {
+        write(1, s, 6);
+        /* code */
+    }
+    
     exit(0);
 }

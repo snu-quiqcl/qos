@@ -1,9 +1,11 @@
 use volatile_register::{RO, RW};
+use crate::{println,print};
+use crate::io::uart;
 use crate::paging::L1PageTable;
 use crate::mem::Paddr;
 
 pub const MPCORE_PHYS0: usize = 0xf8f0_0000; // Physical base address of Mpcore (first 4 KB)
-pub const MPCORE_PHYS1: usize = 0xf8f0_1000; // Physical base address of Mpcore (first 4 KB)
+pub const MPCORE_PHYS1: usize = 0xf8f0_1000; // Physical base address of Mpcore (second 4 KB)
 pub static mut MPCORE_VIRT0: usize = 0; // Virtual base address of Mpcore -> GICC,TimerRegs
 pub static mut MPCORE_VIRT1: usize = 0; // Virtual base address of Mpcore -> GICD,GICPRegs
 
@@ -17,7 +19,21 @@ pub fn mpcore_init() {
 }
 
 #[repr(C)]
-pub struct GICCRegs{   // GIC CPU Interface: _MPCORE_VIRT0 + 0x0000_0100
+pub struct SCURegs{          // Snoop Control Unit: MPCORE_VIRT0
+    pub scr: RW<u32>,        // SCU Control 
+    pub cfr: RW<u32>,        // SCU Configuration
+    pub psr: RW<u32>,        // SCU Power Status
+    pub xasr: RW<u32>,       // SCU Invalidate All Registers in Secure State
+    pub reserved0: [u32;12],
+    pub fsar: RW<u32>,       // Filtering Start Address
+    pub fear: RW<u32>,       // Filtering End Address
+    pub reserved1: [u32;2],
+    pub sacr: RW<u32>,       // SCU Access Control 
+    pub nacr: RW<u32>,       // Non-secure Access Control
+}
+
+#[repr(C)]
+pub struct GICCRegs{   // GIC CPU Interface: MPCORE_VIRT0 + 0x0000_0100
     pub icr: RW<u32>,  // CPU Interface Control 
     pub pmr: RW<u32>,  // Interrupt Priority Mask
     pub bpr: RW<u32>,  // Binary Point
@@ -26,17 +42,30 @@ pub struct GICCRegs{   // GIC CPU Interface: _MPCORE_VIRT0 + 0x0000_0100
 }
 
 #[repr(C)]
-pub struct TimerRegs{         // Timers: _MPCORE_VIRT0 + 0x0000_0200
-    // Global Timers
-    pub global: [RW<u32>;7],  // To be defined
+pub struct TimerRegs{         // Timers: MPCORE_VIRT0 + 0x0000_0200
+    pub gtcr0: RW<u32>,       // Global Timer Counter 0
+    pub gtcr1: RW<u32>,       // Global Timer Counter 1
+    pub gtccr: RW<u32>,       // Global Timer Control
+    pub gtcisr: RW<u32>,      // Global Timer Interrupt Status
+    pub cvr0: RW<u32>,        // Comparator Value 0
+    pub cvr1: RW<u32>,        // Comparator Value 1
+    pub air: RW<u32>,         // Auto Increment
     pub reserved0: [u32;249],    
-    pub private: [RW<u32>;3], // To be defined
-    pub reserved1: [u32;4],
-    pub watch: [RW<u32>;6],   // To be defined
+    pub ptclr: RW<u32>,       // Private Timer Load
+    pub ptcr: RW<u32>,        // Private Timer Counter
+    pub ptccr: RW<u32>,       // Private Timer Control
+    pub ptcisr: RW<u32>,      // Private Timer Interrupt Status
+    pub reserved1: [u32;4],   
+    pub wtclr: RW<u32>,       // Watchdog Load
+    pub wtcr: RW<u32>,        // Watchdog Counter
+    pub wtccr: RW<u32>,       // Watchdog Control
+    pub wtcisr: RW<u32>,      // Watchdog Interrupt Status
+    pub wtcrsr: RW<u32>,      // Watchdog Reset Status
+    pub wtcdir: RW<u32>,      // Watchdog Disable Register
 }
 
 #[repr(C)]
-pub struct GICDRegs{          // GIC Distributor: _MPCORE_VIRT1
+pub struct GICDRegs{          // GIC Distributor: MPCORE_VIRT1
     pub dcr: RW<u32>,         // Distribution Control
     pub ictr: RW<u32>,        // Interrupt Controller Type 
     pub iidr: RW<u32>,        // Distributor Implenter Identification
@@ -61,7 +90,7 @@ pub struct GICDRegs{          // GIC Distributor: _MPCORE_VIRT1
 }
 
 #[repr(C)]
-pub struct GICPRegs{          // Peripherals: _MPCORE_VIRT1 + 0x0000_0d00
+pub struct GICPRegs{          // Peripherals: MPCORE_VIRT1 + 0x0000_0d00
     pub ppir: RW<u32>,        // PPI (Private Peripheral) Status
     pub spir: [RW<u32>;2],    // SPI (Shared Peripheral) Status
     pub reserved0: [u32;125],
@@ -71,19 +100,20 @@ pub struct GICPRegs{          // Peripherals: _MPCORE_VIRT1 + 0x0000_0d00
     pub cidr: [RW<u32>;4],    // Component ID
 }
 
-/// Wrapper for GICRegs
+/// Wrapper for Mpcore
 pub struct Mpcore {
+    pub scu: &'static mut SCURegs,
     pub cpu_interface: &'static mut GICCRegs,
     pub distributor: &'static mut GICDRegs,
     pub timer: &'static mut TimerRegs,
     pub peripheral: &'static mut GICPRegs,
 }
 
+pub static mut SCU_BASE: usize = 0;
 pub static mut GICC_BASE: usize = 0;
 pub static mut TIMER_BASE: usize = 0;
 pub static mut GICD_BASE: usize = 0;
 pub static mut GICP_BASE: usize = 0;
-
 
 impl Mpcore{
     pub const IAR_MASK: u32 = 0x3ff;
@@ -91,6 +121,7 @@ impl Mpcore{
 
     pub fn get() -> Mpcore {
         Mpcore {
+            scu: unsafe {&mut *(SCU_BASE as *mut _)},
             cpu_interface: unsafe {&mut *(GICC_BASE as *mut _)},
             distributor: unsafe {&mut *(GICD_BASE as *mut _)},
             timer: unsafe {&mut *(TIMER_BASE as *mut _)},
@@ -108,10 +139,52 @@ impl Mpcore{
         eoi +=  irqid;
         unsafe { self.cpu_interface.eoir.write(eoi); }
     }    
+
+    pub fn ptc_start_timer(&mut self, mode: u32, prescaler: u8, load: u32){
+        unsafe { 
+            self.timer.ptclr.write(load);
+            self.timer.ptccr.write((prescaler as u32) << 8 | 1 << 2 | mode);
+        }
+    }
+
+    pub fn irq_ptc_preempt(&mut self, ptc_arg: u32) {
+        pub const AUTO_BOUND: u32 = 0x7;
+        let mut uart = uart::Uart::get();
+       // uart.print("timer interrupt start!\n");
+        
+        if ptc_arg < AUTO_BOUND {
+            uart.print("timer interrupt start!\n");
+            //println!("timer interrupt start!");
+        } else {
+            uart.print("timer interrupt end!\n");
+            //println!("timer interrupt end!\n");
+            self.ptc_disable_interrupt();
+        }
+    }
+
+    pub fn ptc_get_counter(&mut self) -> u32 {
+        unsafe{ self.timer.ptcr.read() }
+    }
+
+    pub fn ptc_interrupt_status(&mut self) -> u32 {
+        unsafe{ self.timer.ptcisr.read() }
+    }
+
+    pub fn ptc_disable_interrupt(&mut self) {
+        unsafe { self.timer.ptccr.write(0 << 2); }
+    }
+
+    pub fn clear_interrupt(&mut self, irq_type: u32) {
+        match irq_type {
+            29 => { unsafe { self.timer.ptcisr.write(0x1); } },
+            _ => {}
+        }
+    }
 }
 
 /// Enable secure interrupts
 pub unsafe fn gic_init() {
+    SCU_BASE = MPCORE_VIRT0;
     GICC_BASE = MPCORE_VIRT0 + 0x0000_0100;
     TIMER_BASE = MPCORE_VIRT0 + 0x0000_0200;
     GICD_BASE = MPCORE_VIRT1;
@@ -125,10 +198,12 @@ pub unsafe fn gic_init() {
     mpcore.cpu_interface.pmr.write(PRI_LEVEL);
     mpcore.cpu_interface.icr.write(ICR_ENABLE);
     mpcore.distributor.dcr.write(DCR_ENABLE);
+    
     for i in 0..3 {
         mpcore.distributor.iser[i].write(SET_ENABLE);
     }
     mpcore.distributor.iptr[20].write(1 << 16); // uart target cpu0
+    mpcore.distributor.iptr[7].write(1 << 8); // timer target cpu0
     global_interrupt_enable();
 }
 
@@ -143,3 +218,20 @@ pub unsafe fn global_interrupt_enable() {
     */
     asm!("cpsie i");
 }
+
+/// Enable timer interrupts
+pub unsafe fn timer_init() {
+    pub const TIMER_SINGLE: u32 = 0x1; // mode: singleshot
+    pub const TIMER_AUTO: u32 = 0x3; // mode: autoreload
+    pub const TIMER_PRESCALER: u8 = 0x10; // set prescaler value
+    pub const TIMER_LOAD: u32 = 0x1000; // set load value
+
+    let mut mpcore = Mpcore::get();
+    mpcore.ptc_start_timer(TIMER_AUTO, TIMER_PRESCALER, TIMER_LOAD);
+}
+
+/* CALCULATION OF TIME INTERVAL FOR TIMER COUNTERS
+    Time Interval = (PRESCALAR + 1)*(LOAD + 1)*(CPU_3X2X)
+    PRESCALAR: 8 bits
+
+*/

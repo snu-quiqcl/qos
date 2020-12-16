@@ -36,11 +36,13 @@ pub fn dispatch_syscall(tf: &TrapFrame) {
             let fd = tf.reg[1];
             let s = tf.reg[2] as *const u8;
             let len = tf.reg[3];
+            unsafe {asm!("cpsid if");}
             for i in 0..len {
                 unsafe {
                     print!("{}", *s.offset(i as isize) as char);
                 }
             }
+            unsafe {asm!("cpsie i");}
         },
         Syscall::Read => {
             println!("Sys read");
