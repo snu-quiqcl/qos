@@ -17,16 +17,32 @@ void yield() {
     syscall(SYS_YIELD);
 }
 
+int fork() {
+    return syscall(SYS_FORK);
+}
+
 void exit(int exit_code) {
     syscall(SYS_EXIT, exit_code);
     while(1);
 }
 
+char *msg = "parent\n";
+char *msg2 = "child\n";
+
 void _start() {
-    char *s = "Hello\n";
-    write(1, s, 6);
-    yield();
-    s = "Hello2\n";
-    write(1, s, 7);
+    if(fork()) {
+        while (1)
+        {
+            write(1,msg, 7);
+            yield();
+        }
+        
+    } else {
+        while (1)
+        {
+            write(1, msg2, 6);
+            yield();
+        }
+    }
     exit(0);
 }

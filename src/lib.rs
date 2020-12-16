@@ -31,7 +31,6 @@ pub fn init() {
         use mem::memcpy;
         memcpy(user_prog.addr as *mut u8, USER_PROG.as_ptr(), USER_PROG.len());
         env::env_create(user_prog.addr);
-        env::env_create(user_prog.addr);
         sched::sched_yield();
     }
 }

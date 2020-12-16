@@ -17,14 +17,7 @@ pub unsafe extern "C" fn svc(tf: &TrapFrame) {
     get_envs().envs[env::get_current_env().unwrap()].tf = *tf;
     syscall::dispatch_syscall(tf);
 }
-#[no_mangle]
-pub extern "C" fn prefetch_abort(tf: &TrapFrame) {
-    println!("prefetch");
-}
-#[no_mangle]
-pub extern "C" fn data_abort(tf: &TrapFrame) {
-    println!("{:x?}", tf);
-}
+
 #[no_mangle]
 pub unsafe extern "C" fn irq() {
     let mut mpcore = mpcore::Mpcore::get();
@@ -49,4 +42,9 @@ pub unsafe extern "C" fn irq() {
 #[no_mangle]
 pub extern "C" fn fiq(tf: &TrapFrame) {
     println!("fiq");
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn page_fault_handler(addr: usize) {
+    println!("{:x}", addr);
 }
