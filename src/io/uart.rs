@@ -6,7 +6,7 @@ use crate::paging::{KERN_BASE, PAGE_SIZE, L1PageTable};
 use lazy_static::lazy_static;
 use spin::Mutex;
 
-pub const _UART_PHYS: usize = 0xe000_1000; // Physical base address of Uart  
+pub const _UART_PHYS: usize = 0xe000_1000; // Physical base address of Uart 1   
 pub const _UART_VIRT: usize = 0xfff0_0000; // Virtual base address of Uart -> UartRegs
 
 #[repr(C)]
@@ -36,8 +36,10 @@ impl UartRegs {
     }
 
     pub fn macro_write(&mut self, c: u8) {
+        //unsafe { asm!("cpsid if"); }
         while self.is_tx_full() {} // polling
         unsafe { self.fifo.write(c as u32); }
+        //unsafe { asm!("cpsie i"); }
     }
 
     pub fn irq_write(&mut self, c: u8) {
@@ -127,6 +129,7 @@ pub const BUFFER_UNIT: u32 = 256;
 pub const BUFFER_COUNT: usize = 16;
 pub static mut UART_BASE: usize = 0;
 pub static mut UART_BUFFER: usize = 0;
+pub static mut BUFFER_INIT: usize = 1;
 extern "C" { static _uart_buffer: usize; }
 
 /// Wrapper for UartRegs, IrqTXBuffer
@@ -223,9 +226,12 @@ impl Uart {
     pub fn print(&mut self, s: &'static str) {
         unsafe {
             let str_len: u32 = s.len() as u32;
-            let enqueue = self.enqueue_buffer(s, str_len);
+            let enqueue = self.buffer_enqueue(s, str_len);
             if enqueue != 1 { return }
-            self.regs.enable_interrupt();
+            if BUFFER_INIT != 0 {
+                BUFFER_INIT = 0; 
+                self.regs.enable_interrupt();
+            }        
         }
     }
 
@@ -233,29 +239,39 @@ impl Uart {
         let mut tx_pointer_lock = self.queue.pointer.lock();
         let mut tx_buffer_lock = self.queue.array[tx_pointer_lock.BUFFER_HEAD].lock();
         let tx_str = tx_buffer_lock.UART_TX_STRING;
-        let mut dequeue: u32 = 0;
+        let tx_ran: usize = tx_buffer_lock.UART_TX_RANGE as usize;
+        let mut keep_head: u32 = 1;
+        let mut move_head: u32 = 0;
         if tx_buffer_lock.UART_TX_ITERATE > Self::TX_FIFO {
-            let tx_ran: usize = tx_buffer_lock.UART_TX_RANGE as usize;
             let tx_itr = &tx_str[tx_ran..(tx_ran+(Self::TX_FIFO as usize))+1];
             for c in tx_itr.bytes() { self.regs.irq_write(c); }
             tx_buffer_lock.UART_TX_ITERATE -= Self::TX_FIFO;
             tx_buffer_lock.UART_TX_RANGE += Self::TX_FIFO;
+            keep_head -= 1;
         } else {
-            let tx_ran: usize = tx_buffer_lock.UART_TX_RANGE as usize;
             let tx_len: usize = tx_buffer_lock.UART_TX_LENGTH as usize;
             let tx_itr = &tx_str[tx_ran..tx_len];
             for c in tx_itr.bytes() { self.regs.irq_write(c); }
-            self.regs.disable_interrupt();
-            dequeue += 1;
+            if tx_pointer_lock.BUFFER_HEAD != tx_pointer_lock.BUFFER_TAIL {
+                move_head += 1;
+            } else {
+                BUFFER_INIT = 1; 
+                self.regs.disable_interrupt();
+            }
         }
         drop(tx_buffer_lock);
         drop(tx_pointer_lock);
-        if dequeue != 0 {
-            self.dequeue_buffer();
+
+        if keep_head != 0 {
+            if move_head != 0 {
+                self.buffer_move_head();
+            } else {
+                self.buffer_init();
+            }
         }
     }
 
-    pub unsafe fn enqueue_buffer(&mut self, s: &'static str, str_len: u32) -> usize {
+    pub unsafe fn buffer_enqueue(&mut self, s: &'static str, str_len: u32) -> usize {
         let margin: u32 = 10;
         if str_len > BUFFER_UNIT - margin {
             return 0;
@@ -279,7 +295,7 @@ impl Uart {
         }
     }
 
-    pub fn dequeue_buffer(&mut self) {
+    pub fn buffer_move_head(&mut self) {
         let mut tx_pointer_lock = self.queue.pointer.lock();
         if tx_pointer_lock.BUFFER_HEAD < BUFFER_COUNT - 1 {
             tx_pointer_lock.BUFFER_HEAD += 1;
@@ -287,6 +303,12 @@ impl Uart {
             tx_pointer_lock.BUFFER_HEAD = 0;
         }
         drop(tx_pointer_lock);
+    }
+
+    pub fn buffer_init(&mut self) {
+        let mut tx_pointer_lock = self.queue.pointer.lock();
+        tx_pointer_lock.BUFFER_HEAD = 0;
+        tx_pointer_lock.BUFFER_TAIL = BUFFER_COUNT + 1;
     }
 }
 

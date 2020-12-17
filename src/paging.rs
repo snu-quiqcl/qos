@@ -1,6 +1,5 @@
 use crate::{println, print};
 use crate::mem;
-use crate::util;
 
 pub const KERN_BASE: usize = 0xc0000000;
 pub const UTOP: usize = 0xc0000000;
@@ -21,9 +20,6 @@ pub const USER_FLAG:usize = 1<<5;
 
 pub use mem::{Vaddr, Paddr};
 
-extern "C" {
-    static _kern_pgdir: usize;
-}
 
 #[repr(C)]
 pub struct L1PageTable {
@@ -34,29 +30,16 @@ static mut MMIO_BASE: usize = KERN_BASE - 16 * SECTION_SIZE;
 
 impl L1PageTable {
     pub fn map_va2pa(&mut self, va: Vaddr, pa: Paddr, flag: usize) {
+        let directory = &mut self.entries[va.addr/SECTION_SIZE];
         let va = va.addr;
         let pa= pa.addr;
-
-
-        let directory;
-        unsafe {
-            directory = &mut *(&mut self.entries[va/SECTION_SIZE] as *mut L1TableEntry);
-        }
         if directory.is_section() {
             panic!("Attempt {:x}-> {:x}: Can't remap section", va, pa);
         } else if directory.is_table() {
         } else {
             let data = alloc_frame(PAGE_SIZE, 1).to_paddr().addr | 0x1;
-            unsafe {
-                let directory_ptr = self.entries.as_mut_ptr().offset(util::round_down(va/SECTION_SIZE, 4) as isize);
-                *directory_ptr = L1TableEntry{ data};
-                *directory_ptr.offset(1) = L1TableEntry{data: data + PAGE_SIZE/4};
-                *directory_ptr.offset(2) = L1TableEntry{data: data + 2 * PAGE_SIZE/4};
-                *directory_ptr.offset(3) = L1TableEntry{data: data + 3 *PAGE_SIZE/4};
-            }
+            *directory = L1TableEntry{ data};
         }
-
-        
         let l2_table = directory.get_l2_table();
         l2_table.entries[(va&!DIRECTORY_MASK)/PAGE_SIZE] = L2TableEntry { data: L2_ADDR_MASK&pa | flag | 0x89e};
     
@@ -86,33 +69,15 @@ impl L1PageTable {
     }
 
     pub fn get() -> &'static mut Self {
-        // Read page table base address (Physical addr)
-        let pgdir_addr = crate::reg::TTBR0::read() as usize;
-        // Change to Virtual address
-        let pgdir_addr = pgdir_addr | KERN_BASE;
-        let pgdir;
+        let kern_pgdir_addr = crate::reg::TTBR0::read() as usize;
+        let kern_pgdir_addr = kern_pgdir_addr | KERN_BASE;
+        let kern_pgdir;
         unsafe {
-            pgdir = &mut *(pgdir_addr as *mut L1PageTable);
+            kern_pgdir = &mut *(kern_pgdir_addr as *mut L1PageTable);
         }
-        pgdir
+        kern_pgdir
     }
-    pub fn get_kern_pgdir() -> &'static mut Self {
-        unsafe {
-            let kern_pgdir_addr = &_kern_pgdir as *const usize as usize;
-            let kern_pgdir_addr = kern_pgdir_addr ^ KERN_BASE;
-            let kern_pgdir = &mut *(kern_pgdir_addr as *mut _);
-            kern_pgdir
-        }
-    }
-
-    pub fn list(&self) {
-        for (i, entry) in self.entries.iter().enumerate() {
-            if entry.is_table() {
-                println!("Section {} => {:x}", i, entry.data);
-            }
-        }
-    }
-
+    
 }
 
 #[repr(C)]
@@ -121,19 +86,19 @@ pub struct L1TableEntry {
 }
 
 impl L1TableEntry {
-    pub fn is_present(&self) -> bool {
+    fn is_present(&self) -> bool {
         self.is_section() || self.is_table()
     }
 
-    pub fn is_section(&self) -> bool {
+    fn is_section(&self) -> bool {
         self.data & SECTION_MASK != 0
     }
 
-    pub fn is_table(&self) -> bool {
+    fn is_table(&self) -> bool {
         self.data & TABLE_MASK != 0
     }
 
-    pub fn get_l2_table(&self) -> &mut L2PageTable {
+    fn get_l2_table(&self) -> &mut L2PageTable {
         unsafe {
             &mut *(((self.data & TABLE_ADDR_MASK) ^ KERN_BASE)  as *mut L2PageTable)
         }
@@ -149,12 +114,6 @@ pub struct L2TableEntry {
     data: usize
 }
 
-impl L2TableEntry {
-    pub fn is_present(&self) -> bool {
-        self.data & 2 != 0
-    }
-}
-
 
 /// Map [3G, 4G-1M) => [0, 1G-1M]
 pub unsafe fn page_init() {
@@ -163,7 +122,7 @@ pub unsafe fn page_init() {
     let mut i = 0;
     mem::memset(entries as *mut _ as *mut u8, 0, 1024*3*4);
     let offset = KERN_BASE / (1024*1024); 
-    while i < 1024 {
+    while i < 1023 {
         entries[i+offset].data = (i << 20) | 0x1280e;
         i += 1;
     }
@@ -175,7 +134,8 @@ fn directory_index(va: Vaddr) -> usize{
 
 use crate::mem::alloc_frame;
 
- /// return physical address of old pgdir
+
+/// return physical address of old pgdir
 pub unsafe fn change_pgdir(pa: Paddr) {
     crate::reg::TTBR0::write(pa.addr);
     // TLB flush

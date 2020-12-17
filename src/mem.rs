@@ -66,6 +66,7 @@ extern "C" {
     static _bootstack: usize;
     static _bss_start: usize;
     static _bss_end: usize;
+    static _kern_pgdir: usize;
     static _irq_stack: usize;
     static _uart_buffer: usize;
 }
@@ -92,7 +93,7 @@ pub struct Paddr {
 }
 
 impl Paddr {
-    pub const fn new(addr: usize) -> Self {
+    pub fn new(addr: usize) -> Self {
         Paddr { addr }
     }
     pub fn to_vaddr(&self) -> Vaddr {

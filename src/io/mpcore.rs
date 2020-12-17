@@ -114,6 +114,7 @@ pub static mut GICC_BASE: usize = 0;
 pub static mut TIMER_BASE: usize = 0;
 pub static mut GICD_BASE: usize = 0;
 pub static mut GICP_BASE: usize = 0;
+pub static mut TIMER_LOOP: usize = 1;
 
 impl Mpcore{
     pub const IAR_MASK: u32 = 0x3ff;
@@ -148,26 +149,24 @@ impl Mpcore{
     }
 
     pub fn irq_ptc_preempt(&mut self, ptc_arg: u32) {
-        pub const AUTO_BOUND: u32 = 0x7;
         let mut uart = uart::Uart::get();
-       // uart.print("timer interrupt start!\n");
-        
-        if ptc_arg < AUTO_BOUND {
-            uart.print("timer interrupt start!\n");
-            //println!("timer interrupt start!");
-        } else {
-            uart.print("timer interrupt end!\n");
-            //println!("timer interrupt end!\n");
-            self.ptc_disable_interrupt();
+
+        uart.print("timer interrupt!\n");
+        println!("{}", ptc_arg);
+
+        unsafe {
+            if TIMER_LOOP != 1 {
+                self.ptc_disable_interrupt();
+            }
         }
     }
 
     pub fn ptc_get_counter(&mut self) -> u32 {
-        unsafe{ self.timer.ptcr.read() }
+        self.timer.ptcr.read()
     }
 
     pub fn ptc_interrupt_status(&mut self) -> u32 {
-        unsafe{ self.timer.ptcisr.read() }
+        self.timer.ptcisr.read()
     }
 
     pub fn ptc_disable_interrupt(&mut self) {
@@ -223,7 +222,7 @@ pub unsafe fn global_interrupt_enable() {
 pub unsafe fn timer_init() {
     pub const TIMER_SINGLE: u32 = 0x1; // mode: singleshot
     pub const TIMER_AUTO: u32 = 0x3; // mode: autoreload
-    pub const TIMER_PRESCALER: u8 = 0x10; // set prescaler value
+    pub const TIMER_PRESCALER: u8 = 0xf0; // set prescaler value
     pub const TIMER_LOAD: u32 = 0x1000; // set load value
 
     let mut mpcore = Mpcore::get();
@@ -233,5 +232,4 @@ pub unsafe fn timer_init() {
 /* CALCULATION OF TIME INTERVAL FOR TIMER COUNTERS
     Time Interval = (PRESCALAR + 1)*(LOAD + 1)*(CPU_3X2X)
     PRESCALAR: 8 bits
-
 */

@@ -144,20 +144,35 @@ add sp, #12
 ldmfd sp!, {r0-r12, pc}^
 
 _prefetch:
-MRC p15,0,r0,c6,c0,2
-msr cpsr_c, #MODE_SVC
-b page_fault_handler
+b .
 
 _data:
-MRC p15,0,r0,c6,c0,0
-msr cpsr_c, #MODE_SVC
-b page_fault_handler
+b .
 
 _irq:
 sub lr, lr, #4
 stmfd sp!, {r0-r12, lr}
 bl irq
 ldmfd sp!, {r0-r12, pc}^    
+
+/* 
+sub lr, lr, #4
+stmfd sp!, {r0-r12, lr}
+
+mrs r0, spsr
+msr cpsr_c, #MODE_SYS
+mov r1, lr
+mov r2, sp
+
+msr cpsr_c, #MODE_IRQ
+
+stmfd sp!, {r0-r2}
+mov r0, sp
+bl irq
+add sp, #12
+
+ldmfd sp!, {r0-r12, pc}^  
+*/
 
 _fiq:
 b .
@@ -174,7 +189,6 @@ context_switch:
 
 .global env_pop_tf
 env_pop_tf:
-    ldr sp, =_bootstack
     add r0, #12
     ldmfd r0, {r0-r12, pc}^
     b .
