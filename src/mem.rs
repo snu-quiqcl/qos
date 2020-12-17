@@ -20,8 +20,7 @@
 //! Virtual memory map
 //!```
 //! 4G -----------> +------------------------------+
-//!                 |          MMIO region         | 1MB
-//!                 +------------------------------+
+//!                 |                              |
 //!                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //!                 :              .               :
 //!                 :              .               :
@@ -38,10 +37,12 @@
 //!                 +------------------------------+
 //!                 |         .text.init           |  16KB
 //! 3G + 1M ------> +------------------------------+
-//!                 |                              |
+//!                 |          MMIO region         |  16MB
 //!                 +------------------------------+
 //!                 |            empty             |  1 MB
 //! 1M -----------> +------------------------------+
+//!                 |                              |
+//!                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //!```
 
 
@@ -66,9 +67,8 @@ extern "C" {
     static _bootstack: usize;
     static _bss_start: usize;
     static _bss_end: usize;
-    static _kern_pgdir: usize;
     static _irq_stack: usize;
-    static _uart_buffer: usize;
+    static _uart_boot: usize;
 }
 
 /// Kernel virtual memory
@@ -93,7 +93,7 @@ pub struct Paddr {
 }
 
 impl Paddr {
-    pub fn new(addr: usize) -> Self {
+    pub const fn new(addr: usize) -> Self {
         Paddr { addr }
     }
     pub fn to_vaddr(&self) -> Vaddr {
@@ -113,8 +113,8 @@ pub unsafe fn mem_init() {
     let bss_end = &_bss_end as *const usize as usize;
     memset(bss_start as *mut u8, 0, bss_end - bss_start);
 
-    // irq stack is end of kernel
-    let mut end = &_uart_buffer as *const usize as usize;
+    // uart boot is end of kernel
+    let mut end = &_uart_boot as *const usize as usize;
 
     // Alloc user env array
     ENVS = boot_alloc(&mut end, size_of::<UserEnv>());
@@ -141,7 +141,7 @@ pub fn free_frame(frame_number: usize) {
 
 /// Allocator for initial setup
 /// allocate static kernel memory
-pub unsafe fn boot_alloc(next_free: &mut usize, size: usize) -> Vaddr {
+unsafe fn boot_alloc(next_free: &mut usize, size: usize) -> Vaddr {
     let ret = *next_free;
     *next_free = round_up(*next_free + size, PAGE_SIZE);
     memset(ret as *mut u8, 0, size);

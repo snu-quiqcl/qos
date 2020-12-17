@@ -144,10 +144,14 @@ add sp, #12
 ldmfd sp!, {r0-r12, pc}^
 
 _prefetch:
-b .
+MRC p15,0,r0,c6,c0,2
+msr cpsr_c, #MODE_SVC
+b page_fault_handler
 
 _data:
-b .
+MRC p15,0,r0,c6,c0,0
+msr cpsr_c, #MODE_SVC
+b page_fault_handler
 
 _irq:
 /*

@@ -24,7 +24,6 @@ pub fn sched_yield() {
             }
         },
         None => {
-            println!("First yield");
             for (i, env) in env::get_envs().envs.iter_mut().enumerate() {
                 if env.status == EnvStatus::Runnable {
                     idle = Some(i);
@@ -35,7 +34,6 @@ pub fn sched_yield() {
     }
 
     if let Some(id) = idle {
-        println!("Start running {}", id);
         unsafe {env::env_run(id)};
         panic!("env_run returned");
     }
