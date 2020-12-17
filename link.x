@@ -49,6 +49,9 @@ SECTIONS
     . = . + 4K;
     _irq_stack = .; 
 
+    . = ALIGN(4k);
+    . = . + 4K;
+    _uart_buffer = .; 
 
     .shstrtab : 
     {

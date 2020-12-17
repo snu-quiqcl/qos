@@ -37,12 +37,5 @@ void _start() {
             yield();
         }
         
-    } else {
-        while (1)
-        {
-            write(1, msg2, 6);
-            yield();
-        }
-    }
     exit(0);
 }

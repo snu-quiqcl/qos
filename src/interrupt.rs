@@ -6,7 +6,8 @@ use crate::io::mpcore;
 use crate::env::{self, get_envs};
 use crate::syscall;
 
-pub static mut count_isr: u32 = 0;
+pub static mut count_tx_irq: u32 = 0;
+pub static mut count_ptc_irq: u32 = 0;
 
 #[no_mangle]
 pub extern "C" fn undefined(tf: &TrapFrame) {
@@ -23,6 +24,12 @@ pub unsafe extern "C" fn irq() {
     let mut mpcore = mpcore::Mpcore::get();
     let irqid: u32 = mpcore.irq_acknowledge_interrupt();
     match irqid {
+        29 => { /* Timer */
+            let mut mpcore = mpcore::Mpcore::get();
+            count_ptc_irq += 1;
+            mpcore.irq_ptc_preempt(count_ptc_irq);
+            mpcore.clear_interrupt(irqid);
+            },
         82 => { /* Uart */
             const UART_TX_EMPTY: u32 = 0x8;
 
@@ -30,8 +37,8 @@ pub unsafe extern "C" fn irq() {
             let uart_irqid = uart.regs.read_interrupt();
             
             if uart_irqid & UART_TX_EMPTY == UART_TX_EMPTY {
-                unsafe {count_isr += 1;}
-                uart.regs.irq_tx_empty();
+                count_tx_irq += 1;
+                uart.irq_tx_empty();
                 uart.regs.clear_interrupt(UART_TX_EMPTY);
             }
             }, 
