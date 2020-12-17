@@ -51,7 +51,7 @@ SECTIONS
 
     . = ALIGN(4k);
     . = . + 4K;
-    _uart_buffer = .; 
+    _uart_boot = .; 
 
     .shstrtab : 
     {

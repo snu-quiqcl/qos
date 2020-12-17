@@ -65,3 +65,7 @@ pub unsafe extern "C" fn irq(tf: &TrapFrame, is_user: bool) {
 pub extern "C" fn fiq(tf: &TrapFrame) {
     println!("fiq");
 }
+#[no_mangle]
+pub unsafe extern "C" fn page_fault_handler(addr: usize, faulted_instruction: usize ) {
+    panic!("invalid address: {:x} at {:x}", addr, faulted_instruction);
+}
