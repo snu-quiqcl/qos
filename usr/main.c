@@ -33,7 +33,7 @@ char *msg2 = "child\n";
 void _start() {
     if(fork()) {
         while (1) {
-            write(1,msg, 7);
+        //    write(1,msg, 7);
         } 
     } else {
         while (1) {

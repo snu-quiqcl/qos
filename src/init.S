@@ -1,12 +1,12 @@
 .equ MODE_USR, 0x10
 .equ MODE_FIQ, 0x11
-.equ MODE_IRQ, 0x12
-.equ MODE_SVC, 0x13
+.equ MODE_IRQ, 0x92
+.equ MODE_SVC, 0x93
 .equ MODE_MON, 0x16
 .equ MODE_ABT, 0x17
 .equ MODE_HYP, 0x1a
 .equ MODE_UND, 0x1b
-.equ MODE_SYS, 0x1f
+.equ MODE_SYS, 0x9f
 
 
 .section .text.vector
@@ -132,6 +132,7 @@ b .
 
 _svc:
 stmfd sp!, {r0-r12, lr}
+bl lock
 mrs r0, spsr
 msr cpsr_c, #MODE_SYS
 mov r1, lr
@@ -207,6 +208,7 @@ context_switch:
 env_pop_tf:
     ldr sp, =_bootstack
     add r0, #12
+    bl unlock
     ldmfd r0, {r0-r12, pc}^
     b .
 

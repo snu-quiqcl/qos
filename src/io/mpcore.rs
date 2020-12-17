@@ -198,7 +198,7 @@ pub unsafe fn gic_init() {
     }
     mpcore.distributor.iptr[20].write(1 << 16); // uart target cpu0
     mpcore.distributor.iptr[7].write(1 << 8); // timer target cpu0
-    global_interrupt_enable();
+    //global_interrupt_enable();
 }
 
 pub unsafe fn global_interrupt_enable() {
