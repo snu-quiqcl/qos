@@ -26,9 +26,9 @@
 //!                 :              .               :
 //!                 :              .               :
 //!                 +------------------------------+
-//!                 |          IRQ stack           |  1KB 
+//!                 |          IRQ stack           |  4KB 
 //!                 +------------------------------+
-//!                 |          boot stack          |  4KB
+//!                 |          boot stack          |  16KB
 //!                 +------------------------------+
 //!                 |  Kernel(text, data, bss)     |
 //!                 +------------------------------+
@@ -68,6 +68,7 @@ extern "C" {
     static _bss_end: usize;
     static _kern_pgdir: usize;
     static _irq_stack: usize;
+    static _uart_buffer: usize;
 }
 
 /// Kernel virtual memory
@@ -112,8 +113,8 @@ pub unsafe fn mem_init() {
     let bss_end = &_bss_end as *const usize as usize;
     memset(bss_start as *mut u8, 0, bss_end - bss_start);
 
-    // bootstack is end of kernel
-    let mut end = &_irq_stack as *const usize as usize;
+    // irq stack is end of kernel
+    let mut end = &_uart_buffer as *const usize as usize;
 
     // Alloc user env array
     ENVS = boot_alloc(&mut end, size_of::<UserEnv>());
@@ -140,7 +141,7 @@ pub fn free_frame(frame_number: usize) {
 
 /// Allocator for initial setup
 /// allocate static kernel memory
-unsafe fn boot_alloc(next_free: &mut usize, size: usize) -> Vaddr {
+pub unsafe fn boot_alloc(next_free: &mut usize, size: usize) -> Vaddr {
     let ret = *next_free;
     *next_free = round_up(*next_free + size, PAGE_SIZE);
     memset(ret as *mut u8, 0, size);

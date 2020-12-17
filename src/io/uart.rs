@@ -1,28 +1,13 @@
 use volatile_register::{RO, RW};
 use core::fmt::Write;
-use crate::{io::slcr, mem::Paddr};
-use crate::paging::{KERN_BASE, L1PageTable};
+use crate::{print, println};
+use crate::{io::slcr, mem::Paddr, mem::alloc_frame};
+use crate::paging::{KERN_BASE, PAGE_SIZE, L1PageTable};
 use lazy_static::lazy_static;
 use spin::Mutex;
 
 pub const _UART_PHYS: usize = 0xe000_1000; // Physical base address of Uart 1   
 pub const _UART_VIRT: usize = 0xfff0_0000; // Virtual base address of Uart -> UartRegs
-
-pub struct IrqTxEmpty {
-    pub UART_TX_STRING: &'static str,
-    pub UART_TX_LENGTH: u32,
-    pub UART_TX_ITERATE: u32,
-    pub UART_TX_RANGE: u32,
-}
-
-lazy_static! {
-    pub static ref IRQ_TX_EMPTY: Mutex<IrqTxEmpty> = Mutex::new(IrqTxEmpty {
-        UART_TX_STRING: "uart...",
-        UART_TX_LENGTH: 64,
-        UART_TX_ITERATE: 64,
-        UART_TX_RANGE: 0,
-    });
-}
 
 #[repr(C)]
 pub struct UartRegs {
@@ -46,34 +31,15 @@ pub struct UartRegs {
 }
 
 impl UartRegs {
-    pub const TX_FIFO: u32 = 64;
-
     pub fn macro_print(&mut self, s: &str) {
         for c in s.bytes() { self.macro_write(c) }        
     }
 
     pub fn macro_write(&mut self, c: u8) {
-        // while self.is_tx_full() {} // polling
+        //unsafe { asm!("cpsid if"); }
+        while self.is_tx_full() {} // polling
         unsafe { self.fifo.write(c as u32); }
-    }
-
-    pub fn irq_tx_empty (&mut self) {
-        let mut tx_empty_lock = IRQ_TX_EMPTY.lock();
-        let tx_str = tx_empty_lock.UART_TX_STRING;
-        if tx_empty_lock.UART_TX_ITERATE > Self::TX_FIFO {
-            let tx_ran: usize = tx_empty_lock.UART_TX_RANGE as usize;
-            let tx_itr = &tx_str[tx_ran..(tx_ran+(Self::TX_FIFO as usize))+1];
-            for c in tx_itr.bytes() { self.irq_write(c); }
-            tx_empty_lock.UART_TX_ITERATE -= Self::TX_FIFO;
-            tx_empty_lock.UART_TX_RANGE += Self::TX_FIFO;
-        } else {
-            let tx_ran: usize = tx_empty_lock.UART_TX_RANGE as usize;
-            let tx_len: usize = tx_empty_lock.UART_TX_LENGTH as usize;
-            let tx_itr = &tx_str[tx_ran..tx_len];
-            for c in tx_itr.bytes() { self.irq_write(c); }
-            self.disable_interrupt();
-        }
-        drop(tx_empty_lock);
+        //unsafe { asm!("cpsie i"); }
     }
 
     pub fn irq_write(&mut self, c: u8) {
@@ -81,7 +47,7 @@ impl UartRegs {
     }
 
     pub fn macro_read(&mut self) -> u8 {
-        // while self.is_rx_empty() {} // polling
+        while self.is_rx_empty() {} // polling
         self.fifo.read() as u8
     }
 
@@ -103,6 +69,22 @@ impl UartRegs {
             _ => {}
         }
     }
+
+    pub fn is_tx_full(&self) -> bool {
+        (self.sr.read() & (1<<4)) != 0
+    }
+
+    pub fn is_tx_empty(&self) -> bool {
+        (self.sr.read() & (1<<3)) != 0
+    }
+
+    pub fn is_rx_full(&self) -> bool {
+        (self.sr.read() & (1<<2)) != 0
+    }
+
+    pub fn is_rx_empty(&self) -> bool {
+        (self.sr.read() & (1<<1)) != 0
+    }
 }
 
 impl Write for UartRegs {
@@ -112,18 +94,57 @@ impl Write for UartRegs {
     }
 }
 
-/// Wrapper for UartRegs
-pub struct Uart {
-    pub regs: &'static mut UartRegs,
+pub struct IrqTxEmpty {
+    pub UART_TX_STRING: &'static str,
+    pub UART_TX_LENGTH: u32,
+    pub UART_TX_ITERATE: u32,
+    pub UART_TX_RANGE: u32,
 }
 
-static mut UART_BASE: usize = 0;
+pub struct IrqTXBuffer {
+    pub BUFFER_HEAD: usize,
+    pub BUFFER_TAIL: usize,
+}
+
+lazy_static! {
+    pub static ref IRQ_TX_EMPTY: Mutex<IrqTxEmpty> = Mutex::new(IrqTxEmpty {
+        UART_TX_STRING: "uart...",
+        UART_TX_LENGTH: 64,
+        UART_TX_ITERATE: 64,
+        UART_TX_RANGE: 0,
+    });
+
+    pub static ref IRQ_TX_BUFFER: Mutex<IrqTXBuffer> = Mutex::new(IrqTXBuffer {
+        BUFFER_HEAD: 0,
+        BUFFER_TAIL: BUFFER_COUNT + 1,
+    });
+}
+
+pub struct IrqTXHandler {
+    pub array: [IRQ_TX_EMPTY; BUFFER_COUNT], // ~256B per print
+    pub pointer: IRQ_TX_BUFFER,
+}
+
+pub const BUFFER_UNIT: u32 = 256;
+pub const BUFFER_COUNT: usize = 16;
+pub static mut UART_BASE: usize = 0;
+pub static mut UART_BUFFER: usize = 0;
+pub static mut BUFFER_INIT: usize = 1;
+extern "C" { static _uart_buffer: usize; }
+
+/// Wrapper for UartRegs, IrqTXBuffer
+pub struct Uart {
+    pub regs: &'static mut UartRegs,
+    pub queue: &'static mut IrqTXHandler,
+}
 
 impl Uart {
+    pub const TX_FIFO: u32 = 64;
 
     pub fn get() -> Uart {
         Uart {
-            regs: unsafe {&mut *(UART_BASE as *mut UartRegs)}
+            regs: unsafe { &mut *(UART_BASE as *mut UartRegs) },
+            queue: unsafe { &mut *(UART_BUFFER as *mut IrqTXHandler) },
         }
     }
 
@@ -194,30 +215,107 @@ impl Uart {
 */
 
     pub unsafe fn config_init(&mut self){
-        //if self.regs.cr.read() & (1<<4) != 0 { return } // check if transmit bit is disabled
+        if self.regs.cr.read() & (1<<4) != 0 { return } // check if transmit bit is disabled
         //self.rst_clk();
         //self.config_frame(0, 0, 3, 0, 0); // no parity
         //self.config_baud(651, 15); // reset value
         //self.config_trig_lev(0);
         self.enable_ctrl();
-       }
+    }
 
     pub fn print(&mut self, s: &'static str) {
-        let str_len: u32 = s.len() as u32;
-        let mut tx_empty_lock = IRQ_TX_EMPTY.lock();
-        tx_empty_lock.UART_TX_STRING = s;
-        tx_empty_lock.UART_TX_LENGTH = str_len;
-        tx_empty_lock.UART_TX_ITERATE = str_len;
-        tx_empty_lock.UART_TX_RANGE = 0;
-        drop(tx_empty_lock);
-        self.regs.enable_interrupt();
+        unsafe {
+            let str_len: u32 = s.len() as u32;
+            let enqueue = self.buffer_enqueue(s, str_len);
+            if enqueue != 1 { return }
+            if BUFFER_INIT != 0 {
+                BUFFER_INIT = 0; 
+                self.regs.enable_interrupt();
+            }        
+        }
+    }
+
+    pub unsafe fn irq_tx_empty(&mut self) {
+        let mut tx_pointer_lock = self.queue.pointer.lock();
+        let mut tx_buffer_lock = self.queue.array[tx_pointer_lock.BUFFER_HEAD].lock();
+        let tx_str = tx_buffer_lock.UART_TX_STRING;
+        let tx_ran: usize = tx_buffer_lock.UART_TX_RANGE as usize;
+        let mut keep_head: u32 = 1;
+        let mut move_head: u32 = 0;
+        if tx_buffer_lock.UART_TX_ITERATE > Self::TX_FIFO {
+            let tx_itr = &tx_str[tx_ran..(tx_ran+(Self::TX_FIFO as usize))+1];
+            for c in tx_itr.bytes() { self.regs.irq_write(c); }
+            tx_buffer_lock.UART_TX_ITERATE -= Self::TX_FIFO;
+            tx_buffer_lock.UART_TX_RANGE += Self::TX_FIFO;
+            keep_head -= 1;
+        } else {
+            let tx_len: usize = tx_buffer_lock.UART_TX_LENGTH as usize;
+            let tx_itr = &tx_str[tx_ran..tx_len];
+            for c in tx_itr.bytes() { self.regs.irq_write(c); }
+            if tx_pointer_lock.BUFFER_HEAD != tx_pointer_lock.BUFFER_TAIL {
+                move_head += 1;
+            } else {
+                BUFFER_INIT = 1; 
+                self.regs.disable_interrupt();
+            }
+        }
+        drop(tx_buffer_lock);
+        drop(tx_pointer_lock);
+
+        if keep_head != 0 {
+            if move_head != 0 {
+                self.buffer_move_head();
+            } else {
+                self.buffer_init();
+            }
+        }
+    }
+
+    pub unsafe fn buffer_enqueue(&mut self, s: &'static str, str_len: u32) -> usize {
+        let margin: u32 = 10;
+        if str_len > BUFFER_UNIT - margin {
+            return 0;
+        } else { 
+            let mut tx_pointer_lock = self.queue.pointer.lock();
+            if tx_pointer_lock.BUFFER_TAIL < BUFFER_COUNT - 1 {
+                tx_pointer_lock.BUFFER_TAIL += 1; 
+            } else { 
+                tx_pointer_lock.BUFFER_TAIL = 0; 
+            }
+            //println!("tail: {}", tx_pointer_lock.BUFFER_TAIL);
+            //println!("head: {}", tx_pointer_lock.BUFFER_HEAD);
+            let mut tx_buffer_lock = self.queue.array[tx_pointer_lock.BUFFER_TAIL].lock();           
+            tx_buffer_lock.UART_TX_STRING = s;
+            tx_buffer_lock.UART_TX_LENGTH = str_len;
+            tx_buffer_lock.UART_TX_ITERATE = str_len;
+            tx_buffer_lock.UART_TX_RANGE = 0;
+            drop(tx_buffer_lock);
+            drop(tx_pointer_lock);
+            return 1;
+        }
+    }
+
+    pub fn buffer_move_head(&mut self) {
+        let mut tx_pointer_lock = self.queue.pointer.lock();
+        if tx_pointer_lock.BUFFER_HEAD < BUFFER_COUNT - 1 {
+            tx_pointer_lock.BUFFER_HEAD += 1;
+        } else {
+            tx_pointer_lock.BUFFER_HEAD = 0;
+        }
+        drop(tx_pointer_lock);
+    }
+
+    pub fn buffer_init(&mut self) {
+        let mut tx_pointer_lock = self.queue.pointer.lock();
+        tx_pointer_lock.BUFFER_HEAD = 0;
+        tx_pointer_lock.BUFFER_TAIL = BUFFER_COUNT + 1;
     }
 }
 
 /// Initialize uart
-/// Reference: Zynq-7000 SOC TRM
 pub unsafe fn uart_init() {
     UART_BASE = L1PageTable::get().map_device(Paddr::new(_UART_PHYS), 0).addr;
+    UART_BUFFER = alloc_frame(PAGE_SIZE, 1).addr;
     let mut uart = Uart::get();
     uart.config_init();
 }

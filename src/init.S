@@ -155,6 +155,25 @@ stmfd sp!, {r0-r12, lr}
 bl irq
 ldmfd sp!, {r0-r12, pc}^    
 
+/* 
+sub lr, lr, #4
+stmfd sp!, {r0-r12, lr}
+
+mrs r0, spsr
+msr cpsr_c, #MODE_SYS
+mov r1, lr
+mov r2, sp
+
+msr cpsr_c, #MODE_IRQ
+
+stmfd sp!, {r0-r2}
+mov r0, sp
+bl irq
+add sp, #12
+
+ldmfd sp!, {r0-r12, pc}^  
+*/
+
 _fiq:
 b .
 
