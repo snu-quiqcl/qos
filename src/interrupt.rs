@@ -1,5 +1,6 @@
 use crate::{println, print};
 use super::env::TrapFrame;
+use crate::{sched, env::EnvStatus};
 use core::ffi;
 use crate::io::uart;
 use crate::io::mpcore;
@@ -27,7 +28,7 @@ pub extern "C" fn data_abort(tf: &TrapFrame) {
     println!("{:x?}", tf);
 }
 #[no_mangle]
-pub unsafe extern "C" fn irq() {
+pub unsafe extern "C" fn irq(tf: &TrapFrame, is_user: bool) {
     let mut mpcore = mpcore::Mpcore::get();
     let irqid: u32 = mpcore.irq_acknowledge_interrupt();
     match irqid {
@@ -35,6 +36,14 @@ pub unsafe extern "C" fn irq() {
             let mut mpcore = mpcore::Mpcore::get();
             count_ptc_irq += 1;
             mpcore.irq_ptc_preempt(count_ptc_irq);
+            if(is_user) {
+                let env = env::get_current_env().unwrap();
+                let envs = env::get_envs();
+                envs.envs[env].tf = *tf;
+                envs.envs[env].status = EnvStatus::Runnable;
+                sched::sched_yield();
+            }
+
             mpcore.clear_interrupt(irqid);
             },
         82 => { /* Uart */
