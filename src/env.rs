@@ -70,7 +70,7 @@ pub fn get_envs() -> &'static mut UserEnv{
 /// Create first user env
 pub fn env_create(binary: usize) {
     let new_env = env_alloc(0);
-    println!("new env[{}]", new_env.id);
+    println!("new env[{}]", new_env);
     
     unsafe {
         load_icode(new_env, binary);
@@ -89,6 +89,14 @@ pub unsafe fn env_run(id: usize) {
     env_pop_tf(&envs.envs[id].tf); 
 }
 
+
+pub fn get_env(offset: usize) -> &'static mut Env {
+    unsafe {
+        let envs_ptr = get_envs().envs.as_mut_ptr();
+        &mut *envs_ptr.offset(offset as isize)
+    }
+}
+
 fn get_free_env() -> usize {
     static mut NEXT_FREE:usize = 0;
     unsafe {
@@ -98,7 +106,7 @@ fn get_free_env() -> usize {
     }
 }
 
-pub fn env_alloc(parent_id: usize) -> &'static mut Env {
+pub fn env_alloc(parent_id: usize) -> usize {
     let envs = get_envs();
     let new_id = get_free_env();
     let new_env = &mut envs.envs[new_id];
@@ -110,7 +118,7 @@ pub fn env_alloc(parent_id: usize) -> &'static mut Env {
 
 
     env_setup_vm(new_env);
-    new_env
+    new_id
 }
 
 pub fn env_destroy(env: usize) {
@@ -136,17 +144,17 @@ pub fn env_setup_vm(env: &mut Env) {
     unsafe {
         let pgdir = (env.pgdir.addr ^ KERN_BASE) as *mut u8;
         let offset = (paging::UTOP/paging::SECTION_SIZE) as isize;
-        let current_page = L1PageTable::get();
+        let kern_pgdir = L1PageTable::get_kern_pgdir();
         memcpy(pgdir,
-            current_page as *const _ as *const u8, 
+            kern_pgdir as *const _ as *const u8, 
             PAGE_SIZE * 4);
     }
 }
 
-unsafe fn load_icode(env: &mut Env, binary: usize) {
+unsafe fn load_icode(env: usize, binary: usize) {
     use crate::elf::{ElfHeader, ProgramHeader};
 
-
+    let env = &mut get_envs().envs[env];
     let old_pgdir = Vaddr::new(L1PageTable::get() as *mut _ as usize).to_paddr();
     paging::change_pgdir(env.pgdir);
     let page_table = L1PageTable::get();

@@ -149,11 +149,6 @@ impl Mpcore{
     }
 
     pub fn irq_ptc_preempt(&mut self, ptc_arg: u32) {
-        let mut uart = uart::Uart::get();
-
-        uart.print("timer interrupt!\n");
-        println!("{}", ptc_arg);
-
         unsafe {
             if TIMER_LOOP != 1 {
                 self.ptc_disable_interrupt();

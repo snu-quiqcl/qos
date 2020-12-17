@@ -32,19 +32,13 @@ pub fn init() {
 
         io::mpcore::timer_init();
 
-        for i in 0..17 {
-            let stamp = timer.ptc_get_counter();
-            println!("stamp: {}", stamp);
-            //uart.print("uart----------12------------------------\n");
-            //uart.print("uart----------34-------------------------++++++++++++++++++++++++-------\n");
-        };
         
         env::env_init();
         let user_prog = mem::alloc_frame(3, 0);
         use mem::memcpy;
         memcpy(user_prog.addr as *mut u8, USER_PROG.as_ptr(), USER_PROG.len());
         env::env_create(user_prog.addr);
-        //sched::sched_yield();
+        sched::sched_yield();
 
     }
 }

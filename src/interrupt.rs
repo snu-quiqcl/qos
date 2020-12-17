@@ -19,14 +19,7 @@ pub unsafe extern "C" fn svc(tf: &TrapFrame) {
     get_envs().envs[env::get_current_env().unwrap()].tf = *tf;
     syscall::dispatch_syscall(tf);
 }
-#[no_mangle]
-pub extern "C" fn prefetch_abort(tf: &TrapFrame) {
-    println!("prefetch");
-}
-#[no_mangle]
-pub extern "C" fn data_abort(tf: &TrapFrame) {
-    println!("{:x?}", tf);
-}
+
 #[no_mangle]
 pub unsafe extern "C" fn irq(tf: &TrapFrame, is_user: bool) {
     let mut mpcore = mpcore::Mpcore::get();
@@ -36,14 +29,19 @@ pub unsafe extern "C" fn irq(tf: &TrapFrame, is_user: bool) {
             let mut mpcore = mpcore::Mpcore::get();
             count_ptc_irq += 1;
             mpcore.irq_ptc_preempt(count_ptc_irq);
+            mpcore.clear_interrupt(irqid);                        
+            mpcore.irq_end_interrupt(irqid);
+            println!("{}", is_user);
+
             if is_user {
+                println!("A");
                 let env = env::get_current_env().unwrap();
                 let envs = env::get_envs();
                 envs.envs[env].tf = *tf;
                 envs.envs[env].status = EnvStatus::Runnable;
                 sched::sched_yield();
             }
-            mpcore.clear_interrupt(irqid);            
+
             },
         82 => { /* Uart */
             const UART_TX_EMPTY: u32 = 0x8;
@@ -59,9 +57,14 @@ pub unsafe extern "C" fn irq(tf: &TrapFrame, is_user: bool) {
             }, 
         _ => {}
     }
-    mpcore.irq_end_interrupt(irqid);
 }
+
 #[no_mangle]
 pub extern "C" fn fiq(tf: &TrapFrame) {
     println!("fiq");
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn page_fault_handler(addr: usize, faulted_instruction: usize ) {
+    panic!("invalid address: {:x} at {:x}", addr, faulted_instruction);
 }

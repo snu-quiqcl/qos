@@ -141,7 +141,7 @@ pub fn free_frame(frame_number: usize) {
 
 /// Allocator for initial setup
 /// allocate static kernel memory
-pub unsafe fn boot_alloc(next_free: &mut usize, size: usize) -> Vaddr {
+unsafe fn boot_alloc(next_free: &mut usize, size: usize) -> Vaddr {
     let ret = *next_free;
     *next_free = round_up(*next_free + size, PAGE_SIZE);
     memset(ret as *mut u8, 0, size);
