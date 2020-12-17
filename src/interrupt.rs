@@ -16,8 +16,9 @@ pub extern "C" fn undefined(tf: &TrapFrame) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn svc(tf: &TrapFrame) {
-    get_envs().envs[env::get_current_env().unwrap()].tf = *tf;
-    syscall::dispatch_syscall(tf);
+    let tf_static = &mut get_envs().envs[env::get_current_env().unwrap()].tf;
+    *tf_static = *tf;
+    syscall::dispatch_syscall(tf_static);
 }
 
 #[no_mangle]
@@ -27,21 +28,18 @@ pub unsafe extern "C" fn irq(tf: &TrapFrame, is_user: bool) {
     match irqid {
         29 => { /* Timer */
             let mut mpcore = mpcore::Mpcore::get();
-            count_ptc_irq += 1;
-            mpcore.irq_ptc_preempt(count_ptc_irq);
+            //count_ptc_irq += 1;
+            //mpcore.irq_ptc_preempt(count_ptc_irq);
             mpcore.clear_interrupt(irqid);                        
             mpcore.irq_end_interrupt(irqid);
-            println!("{}", is_user);
-
+            let env = env::get_current_env().unwrap();
+            let envs = env::get_envs();
             if is_user {
-                println!("A");
-                let env = env::get_current_env().unwrap();
-                let envs = env::get_envs();
                 envs.envs[env].tf = *tf;
-                envs.envs[env].status = EnvStatus::Runnable;
-                sched::sched_yield();
             }
+            envs.envs[env].status = EnvStatus::Runnable;
 
+            sched::sched_yield();
             },
         82 => { /* Uart */
             const UART_TX_EMPTY: u32 = 0x8;

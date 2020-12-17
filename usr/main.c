@@ -34,12 +34,10 @@ void _start() {
     if(fork()) {
         while (1) {
             write(1,msg, 7);
-            yield();
         } 
     } else {
         while (1) {
             write(1, msg2, 6);
-            yield();
         }
     }
     exit(0);

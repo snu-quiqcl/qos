@@ -156,13 +156,7 @@ mov r1, lr
 b page_fault_handler
 
 _irq:
-/*
-sub lr, lr, #4
-stmfd sp!, {r0-r12, lr}
-bl irq
-ldmfd sp!, {r0-r12, pc}^    
-*/
-
+ldr sp, =_irq_stack
 sub lr, lr, #4
 stmfd sp!, {r0-r12, lr}
 
@@ -170,25 +164,29 @@ mov r4, #0x1f
 mrs r5, spsr
 and r6, r4, r5
 cmp r6, #MODE_USR
-bne enter_irq
-
+bne kern_irq
 mrs r3, cpsr
 mrs r0, spsr
-msr cpsr_c, #MODE_SYS
+ldr r4, =MASK
+and r3, r4
+orr r3, #MODE_SYS
+msr cpsr, #MODE_SYS
 mov r1, lr
 mov r2, sp
+and r3, r4
+orr r3, #MODE_IRQ
 msr cpsr, r3
 stmfd sp!, {r0-r2}
-mov r0, sp
 mov r1, #1
+b enter_irq
+kern_irq:
+add sp, #-12
+mov r1, #0
+enter_irq:
+mov r0, sp
 bl irq
 add sp, #12
-ldmfd sp!, {r0-r12, pc}^  
-
-enter_irq:
-    mov r1, #0
-    bl irq
-    ldmfd sp!, {r0-r12, pc}^
+ldmfd sp!, {r0-r12, pc}^
 
 
 _fiq:
@@ -196,11 +194,12 @@ b .
 
 .global context_switch
 context_switch:
+    mrs r2, cpsr
     msr cpsr_c, #MODE_SYS
     ldr r1, [r0]
     ldr lr, [r0, #4]
     ldr sp, [r0, #8]
-    msr cpsr_c, #MODE_SVC
+    msr cpsr, r2
     msr spsr, r1
     bx lr
 
@@ -210,3 +209,5 @@ env_pop_tf:
     add r0, #12
     ldmfd r0, {r0-r12, pc}^
     b .
+
+.equ MASK, 0xffffffe0

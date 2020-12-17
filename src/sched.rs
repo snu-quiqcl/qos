@@ -2,10 +2,10 @@ use crate::env::{self, EnvStatus, NENV};
 use crate::{print, println};
 
 pub fn sched_yield() {
-    let envs = env::get_envs();
     let current_env = env::get_current_env();
     let mut idle = None;
-    match current_env {
+    
+    match current_env{
         Some(id) => {
             let mut i = (id + 1) % NENV;
             let envs = &mut env::get_envs().envs;
@@ -16,6 +16,7 @@ pub fn sched_yield() {
                 }
                 i = (i + 1) % NENV;
             }
+
             // No runnable env found, try to run current env 
             if idle == None {
                 if envs[id].status == EnvStatus::Runnable {
@@ -24,7 +25,6 @@ pub fn sched_yield() {
             }
         },
         None => {
-            println!("First yield");
             for (i, env) in env::get_envs().envs.iter_mut().enumerate() {
                 if env.status == EnvStatus::Runnable {
                     idle = Some(i);
