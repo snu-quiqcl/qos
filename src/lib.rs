@@ -16,7 +16,7 @@ pub mod sched;
 pub mod syscall;
 
 global_asm!(include_str!("init.S"));
-static USER_PROG:&[u8] = include_bytes!("../usr/shell");
+static USER_PROG:&[u8] = include_bytes!("../usr/hello");
 
 pub fn init() {
     unsafe {
@@ -44,8 +44,7 @@ pub fn init() {
         use mem::memcpy;
         memcpy(user_prog.addr as *mut u8, USER_PROG.as_ptr(), USER_PROG.len());
         env::env_create(user_prog.addr);
-        env::env_create(user_prog.addr);
-        sched::sched_yield();
+        //sched::sched_yield();
 
     }
 }

@@ -150,29 +150,40 @@ _data:
 b .
 
 _irq:
+/*
 sub lr, lr, #4
 stmfd sp!, {r0-r12, lr}
 bl irq
 ldmfd sp!, {r0-r12, pc}^    
+*/
 
-/* 
 sub lr, lr, #4
 stmfd sp!, {r0-r12, lr}
 
+mov r4, 0x1f
+mrs r5, cpsr
+and r6, r4, r5
+cmp r6, #MODE_IRQ
+beq enter_irq
+
+mrs r3, cpsr
 mrs r0, spsr
 msr cpsr_c, #MODE_SYS
 mov r1, lr
 mov r2, sp
-
-msr cpsr_c, #MODE_IRQ
-
+msr cpsr, r3
 stmfd sp!, {r0-r2}
 mov r0, sp
+mov r1, #1
 bl irq
 add sp, #12
-
 ldmfd sp!, {r0-r12, pc}^  
-*/
+
+enter_irq:
+    mov r1, #0
+    bl irq
+    ldmfd sp!, {r0-r12, pc}^
+
 
 _fiq:
 b .
