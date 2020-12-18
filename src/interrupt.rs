@@ -28,7 +28,8 @@ pub unsafe extern "C" fn irq(tf: &TrapFrame, is_user: bool) {
     match irqid {
         29 => { /* Timer */
             let mut mpcore = mpcore::Mpcore::get();
-            //count_ptc_irq += 1;
+            count_ptc_irq += 1;
+            println!("{}", count_ptc_irq);
             //mpcore.irq_ptc_preempt(count_ptc_irq);
             mpcore.clear_interrupt(irqid);                        
             mpcore.irq_end_interrupt(irqid);

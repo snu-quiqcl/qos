@@ -26,8 +26,7 @@ pub fn init() {
         io::mpcore::mpcore_init(); // Map mpcore registers
         io::mpcore::gic_init(); // Initialize generic interrupt controller
         io::uart::uart_init();// Initialize uart
-        io::axi::axi_init();// Initialize axi
-        
+        io::axi::axi_init();// Initialize axi 
 
         
         let mut uart = io::uart::Uart::get();
