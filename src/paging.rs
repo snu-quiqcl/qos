@@ -101,28 +101,11 @@ impl L1PageTable {
         } else{
             let data = alloc_frame(PAGE_SIZE, 1).to_paddr().addr | 0x1;
             unsafe {
-                let directory_ptr = self.entries.as_mut_ptr().offset(util::round_down(va/SECTION_SIZE, 18) as isize);
+                let directory_ptr = self.entries.as_mut_ptr().offset(util::round_down(va/SECTION_SIZE, 4) as isize);
                 *directory_ptr = L1TableEntry{ data};
                 *directory_ptr.offset(1) = L1TableEntry{data: data + PAGE_SIZE/4};
                 *directory_ptr.offset(2) = L1TableEntry{data: data + 2 * PAGE_SIZE/4};
                 *directory_ptr.offset(3) = L1TableEntry{data: data + 3 * PAGE_SIZE/4};
-                *directory_ptr.offset(4) = L1TableEntry{data: data + 4 * PAGE_SIZE/4};
-                *directory_ptr.offset(5) = L1TableEntry{data: data + 5 * PAGE_SIZE/4};
-                *directory_ptr.offset(6) = L1TableEntry{data: data + 6 * PAGE_SIZE/4};
-                *directory_ptr.offset(7) = L1TableEntry{data: data + 7 * PAGE_SIZE/4};
-                *directory_ptr.offset(8) = L1TableEntry{data: data + 8 * PAGE_SIZE/4};
-                *directory_ptr.offset(9) = L1TableEntry{data: data + 9 * PAGE_SIZE/4};
-                *directory_ptr.offset(10) = L1TableEntry{data: data + 10 * PAGE_SIZE/4};
-                *directory_ptr.offset(11) = L1TableEntry{data: data + 11 * PAGE_SIZE/4};
-                *directory_ptr.offset(12) = L1TableEntry{data: data + 12 * PAGE_SIZE/4};
-                *directory_ptr.offset(13) = L1TableEntry{data: data + 13 * PAGE_SIZE/4};
-                *directory_ptr.offset(14) = L1TableEntry{data: data + 14 * PAGE_SIZE/4};
-                *directory_ptr.offset(15) = L1TableEntry{data: data + 15 * PAGE_SIZE/4};
-                *directory_ptr.offset(16) = L1TableEntry{data: data + 16 * PAGE_SIZE/4};
-                *directory_ptr.offset(17) = L1TableEntry{data: data + 17 * PAGE_SIZE/4};
-
-
-
             }
         }
 

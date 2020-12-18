@@ -4,6 +4,7 @@ use volatile_register::{RO, RW};
 use crate::{io::slcr, mem::Paddr, mem::alloc_frame};
 use crate::paging::{KERN_BASE, PAGE_SIZE, L1PageTable};
 //use crate::mem::{Vaddr, Paddr};
+use crate::{println, print};
 
 #[repr(C)]
 pub struct AXI{
@@ -45,24 +46,26 @@ pub unsafe fn axi_init() {
     //AXI0_BASE= L1PageTable::get().map_device(Paddr::new(_AXI0_PHYS), 0).addr; 
     //AXI1_BASE= L1PageTable::get().map_device(Paddr::new(_AXI1_PHYS), 0).addr;
 
-    AXI0_BASE= L1PageTable::get().map_axi0(Paddr::new(_AXI0_PHYS), 0).addr;
-    AXI0P_BASE= L1PageTable::get().map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE), 0).addr;
-    AXID1_BASE= L1PageTable::get().map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 2), 0).addr;
-    AXID2_BASE= L1PageTable::get().map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 3), 0).addr;
-    AXID3_BASE= L1PageTable::get().map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 4), 0).addr;
-    AXID4_BASE= L1PageTable::get().map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 5), 0).addr;
-    AXID5_BASE= L1PageTable::get().map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 6), 0).addr;
-    AXID6_BASE= L1PageTable::get().map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 7), 0).addr;
-    AXID7_BASE= L1PageTable::get().map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 8), 0).addr;
-    AXID8_BASE= L1PageTable::get().map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 9), 0).addr;
-    AXID9_BASE= L1PageTable::get().map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 10), 0).addr;
-    AXID10_BASE= L1PageTable::get().map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 11), 0).addr;
-    AXID11_BASE= L1PageTable::get().map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 12), 0).addr;
-    AXID12_BASE= L1PageTable::get().map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 13), 0).addr;
-    AXID13_BASE= L1PageTable::get().map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 14), 0).addr;
-    AXID14_BASE= L1PageTable::get().map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 15), 0).addr;
-    AXI1_BASE= L1PageTable::get().map_axi0(Paddr::new(_AXI1_PHYS), 0).addr;
-    AXI1P_BASE= L1PageTable::get().map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 17), 0).addr;
+    let page_table = L1PageTable::get();
+
+    AXI0_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS), 0).addr;
+    AXI0P_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE), 0).addr;
+    AXID1_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 2), 0).addr;
+    AXID2_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 3), 0).addr;
+    AXID3_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 4), 0).addr;
+    AXID4_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 5), 0).addr;
+    AXID5_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 6), 0).addr;
+    AXID6_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 7), 0).addr;
+    AXID7_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 8), 0).addr;
+    AXID8_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 9), 0).addr;
+    AXID9_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 10), 0).addr;
+    AXID10_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 11), 0).addr;
+    AXID11_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 12), 0).addr;
+    AXID12_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 13), 0).addr;
+    AXID13_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 14), 0).addr;
+    AXID14_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 15), 0).addr;
+    AXI1_BASE= page_table.map_axi0(Paddr::new(_AXI1_PHYS), 0).addr;
+    AXI1P_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 17), 0).addr;
 /*
     let a1=&mut*(axi_seq(0));
     let a2=&mut*(axi_seq(1));
@@ -168,13 +171,13 @@ pub unsafe fn axi_seq(port:usize) -> usize{
     let va1 = AXI1_BASE;
     let va2 = AXID1_BASE;
     if(port==0){
-        va0 as usize
+        va0
     }
     else if(port==1){
-        va1 as usize
+        va1
     }
     else{
-        va2 as usize
+        va2
     }
     
     

@@ -33,7 +33,7 @@ impl Syscall {
 }
 
 
-pub fn dispatch_syscall(tf: &TrapFrame) {
+pub fn dispatch_syscall(tf: &mut TrapFrame) {
     let syscall_num = Syscall::new(tf.reg[0]);
     match syscall_num {
         Syscall::Write => {
@@ -68,14 +68,11 @@ pub fn dispatch_syscall(tf: &TrapFrame) {
         Syscall::Axi => {
             //let axi_data = tf.reg[1] as usize;
             let port = tf.reg[1] as usize;
-            let envs = env::get_envs();
-            let env = &mut envs.envs[env::get_current_env().unwrap()];
-            env.tf = *tf;
             
             unsafe{
             //axi_seq(port);
             //print!("{}",axi_seq(port)as usize);
-            env.tf.reg[0] = axi_seq(port);
+            tf.reg[0] = axi_seq(port);
 
 /*                axi_out(0,3,0);
                 axi_out(0,3,1);
