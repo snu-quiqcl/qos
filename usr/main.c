@@ -7,6 +7,7 @@ enum syscalls {
     SYS_FORK,
     SYS_EXEC,
     SYS_EXIT,
+    SYS_AXI,
 };
 
 void write(int fd, char* s, int len) {
@@ -26,18 +27,36 @@ int fork() {
     return syscall(SYS_FORK);
 }
 
+int axi(int tstamp, int channel, int port) {
+    syscall(SYS_AXI, tstamp, channel, port);
+}
+
 char *msg = "parent\n";
 char *msg2 = "child\n";
-
+int cnt=0;
 
 void _start() {
     if(fork()) {
+	
         while (1) {
         //    write(1,msg, 7);
+	    axi(0,2,0);
+	    axi(0,0x200002,0);
+	    axi(0,0x40000001,0);
+	    
+	    
+	    
         } 
     } else {
+	
         while (1) {
-            write(1, msg2, 6);
+           // write(1, msg2, 6);
+	    axi(0,2,1);
+	    axi(0,0x200002,1);
+	    axi(0,0x40000001,1);
+	    
+	    
+	    
         }
     }
     exit(0);

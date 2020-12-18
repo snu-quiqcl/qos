@@ -3,6 +3,7 @@ use crate::mem;
 use crate::util;
 
 pub const KERN_BASE: usize = 0xc0000000;
+pub const PL_BASE: usize = 0x80000000;//for axi
 pub const UTOP: usize = 0xc0000000;
 pub const USTACK: usize = 0x40000000;
 pub const PAGE_SIZE: usize = 4096;
@@ -32,7 +33,8 @@ pub struct L1PageTable {
 }   
 
 static mut MMIO_BASE: usize = KERN_BASE - 16 * SECTION_SIZE;
-
+static mut VAXI0_BASE: usize = PL_BASE;// - 17 * SECTION_SIZE;
+static mut VAXI1_BASE: usize = PL_BASE-SECTION_SIZE;// - 18 * SECTION_SIZE;
 impl L1PageTable {
     pub fn map_va2pa(&mut self, va: Vaddr, pa: Paddr, flag: usize) {
         let directory;
@@ -80,6 +82,73 @@ impl L1PageTable {
         let l2_table = directory.get_l2_table();
         l2_table.entries[(va&!DIRECTORY_MASK)/PAGE_SIZE] = L2TableEntry { data: L2_ADDR_MASK&pa | flag | 0x813};   
         
+        Vaddr::new(va)
+    }
+
+    pub fn map_axi0(&mut self, pa:Paddr, flag: usize) -> Vaddr{
+        let directory;
+        let va;
+        let pa = pa.addr;
+        unsafe {
+            va = VAXI0_BASE;
+            VAXI0_BASE += PAGE_SIZE;
+            directory = &mut *(&mut self.entries[va/SECTION_SIZE] as *mut L1TableEntry);
+        }
+        if directory.is_section() {
+            panic!("Attempt {:x}-> {:x}: Can't remap section", va, pa);
+        } else if directory.is_table() {
+
+        } else{
+            let data = alloc_frame(PAGE_SIZE, 1).to_paddr().addr | 0x1;
+            unsafe {
+                let directory_ptr = self.entries.as_mut_ptr().offset(util::round_down(va/SECTION_SIZE, 17) as isize);
+                *directory_ptr = L1TableEntry{ data};
+                *directory_ptr.offset(1) = L1TableEntry{data: data + PAGE_SIZE/4};
+                *directory_ptr.offset(2) = L1TableEntry{data: data + 2 * PAGE_SIZE/4};
+                *directory_ptr.offset(3) = L1TableEntry{data: data + 3 * PAGE_SIZE/4};
+                *directory_ptr.offset(4) = L1TableEntry{data: data + 4 * PAGE_SIZE/4};
+                *directory_ptr.offset(5) = L1TableEntry{data: data + 5 * PAGE_SIZE/4};
+                *directory_ptr.offset(6) = L1TableEntry{data: data + 6 * PAGE_SIZE/4};
+                *directory_ptr.offset(7) = L1TableEntry{data: data + 7 * PAGE_SIZE/4};
+                *directory_ptr.offset(8) = L1TableEntry{data: data + 8 * PAGE_SIZE/4};
+                *directory_ptr.offset(9) = L1TableEntry{data: data + 9 * PAGE_SIZE/4};
+                *directory_ptr.offset(10) = L1TableEntry{data: data + 10 * PAGE_SIZE/4};
+                *directory_ptr.offset(11) = L1TableEntry{data: data + 11 * PAGE_SIZE/4};
+                *directory_ptr.offset(12) = L1TableEntry{data: data + 12 * PAGE_SIZE/4};
+                *directory_ptr.offset(13) = L1TableEntry{data: data + 13 * PAGE_SIZE/4};
+                *directory_ptr.offset(14) = L1TableEntry{data: data + 14 * PAGE_SIZE/4};
+                *directory_ptr.offset(15) = L1TableEntry{data: data + 15 * PAGE_SIZE/4};
+                *directory_ptr.offset(16) = L1TableEntry{data: data + 16 * PAGE_SIZE/4};
+
+            }
+        }
+
+        let l2_table = directory.get_l2_table();
+        l2_table.entries[(va&!DIRECTORY_MASK)/PAGE_SIZE] = L2TableEntry { data: L2_ADDR_MASK&pa | flag | 0x813};
+
+        Vaddr::new(va)
+    }
+
+    pub fn map_axi1(&mut self, pa:Paddr, flag: usize) -> Vaddr{
+        let va;
+        let pa = pa.addr;
+        unsafe {
+            va = VAXI1_BASE;
+            VAXI1_BASE += PAGE_SIZE;
+        }
+        let directory = &mut self.entries[va/SECTION_SIZE];
+
+        if directory.is_section() {
+            panic!("Attempt {:x}-> {:x}: Can't remap section", va, pa);
+        } else if directory.is_table() {
+
+        } else {
+            *directory = L1TableEntry{ data: alloc_frame(PAGE_SIZE, 1).to_paddr().addr
+                | 0x1};
+        }
+        let l2_table = directory.get_l2_table();
+        l2_table.entries[(va&!DIRECTORY_MASK)/PAGE_SIZE] = L2TableEntry { data: L2_ADDR_MASK&pa | flag | 0x813};
+
         Vaddr::new(va)
     }
 

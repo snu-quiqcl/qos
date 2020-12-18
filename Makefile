@@ -18,3 +18,8 @@ qemu: all
 
 qemu-gdb: all
 	qemu-system-arm -M xilinx-zynq-a9 -serial /dev/null -serial mon:stdio -s -nographic -kernel $(KERNEL) -S
+
+jtag:
+	cargo build --release
+	arm-none-eabi-objcopy -O binary $(KERNEL) os.bin
+	openocd -f zybo.cfg

@@ -1,6 +1,6 @@
 use paging::{USER_FLAG};
 use crate::{env::{self,TrapFrame, EnvStatus}, mem::{self, Vaddr}, paging::{self, L1PageTable, L1TableEntry, PAGE_SIZE, SECTION_SIZE}};
-
+use crate::io::axi::axi_out;
 use crate::sched::{self};
 use crate::{println, print};
 
@@ -13,6 +13,7 @@ pub enum Syscall {
     Fork,
     Exec,
     Exit,
+    Axi,
     Unkown,
 }
 
@@ -25,6 +26,7 @@ impl Syscall {
             3 => Self::Fork,
             4 => Self::Exec,
             5 => Self::Exit,
+            6 => Self::Axi,
             _ => Self::Unkown,
         }
     }
@@ -62,6 +64,14 @@ pub fn dispatch_syscall(tf: &TrapFrame) {
         }
         Syscall::Exit => {
             env::env_destroy(env::get_current_env().unwrap());
+        }
+        Syscall::Axi => {
+            let tstamp = tf.reg[1] as usize;
+            let channel = tf.reg[2] as usize;
+            let port = tf.reg[3] as usize;
+            unsafe{
+                axi_out(tstamp, channel,port);
+            }
         }
         Syscall::Unkown => {
             println!("Worng syscall num");
