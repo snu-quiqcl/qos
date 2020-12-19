@@ -75,7 +75,7 @@ void _start() {
     *a1=2;
     int delay = 0x200000;
     int time = delay;
-    while (1) {
+    for(int i =0; i<10; i++) {
     	*a0 = LED0 | time;
         time += delay;
         *a0 = LED1 | time;
@@ -91,7 +91,7 @@ void _start() {
 	
     }
 	    
-/*
+
 
 	    axi(0x10000002,0);
             axi(0x20000003,0);
@@ -100,13 +100,13 @@ void _start() {
        
             //axi(0,0);
         } 
-/*    } else {
+    } else {
 	
         while (1) {
            // write(1, msg2, 6);
 	    
 	    for(int i=1; i <33; i++){
-		    /*
+		    
                 axi(1+4*i*0x200000,0);
                 axi(2+(4*i+1)*0x200000,0);
                 axi(1+(4*i+2)*0x200000,0);
