@@ -49,23 +49,7 @@ pub unsafe fn axi_init() {
     let page_table = L1PageTable::get();
 
     AXI0_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS), 0).addr;
-    AXI0P_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE), 0).addr;
-    AXID1_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 2), 0).addr;
-    AXID2_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 3), 0).addr;
-    AXID3_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 4), 0).addr;
-    AXID4_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 5), 0).addr;
-    AXID5_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 6), 0).addr;
-    AXID6_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 7), 0).addr;
-    AXID7_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 8), 0).addr;
-    AXID8_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 9), 0).addr;
-    AXID9_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 10), 0).addr;
-    AXID10_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 11), 0).addr;
-    AXID11_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 12), 0).addr;
-    AXID12_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 13), 0).addr;
-    AXID13_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 14), 0).addr;
-    AXID14_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 15), 0).addr;
     AXI1_BASE= page_table.map_axi0(Paddr::new(_AXI1_PHYS), 0).addr;
-    AXI1P_BASE= page_table.map_axi0(Paddr::new(_AXI0_PHYS+PAGE_SIZE * 17), 0).addr;
 /*
     let a1=&mut*(axi_seq(0));
     let a2=&mut*(axi_seq(1));
@@ -80,7 +64,7 @@ pub unsafe fn axi_init() {
     a2.data_write.write(0x40000001);
 */
 
-   /*
+/*   
     axi_out(0,3,0);
     axi_out(0,3,1);
     axi_out(0,0,0);
@@ -121,13 +105,13 @@ pub unsafe fn axi_init() {
     axi_out(0,0x1e000003,1);
     axi_out(0,0x20000002,0);
     axi_out(0,0x20000002,1);
-   */ 
+  */  
     //axi_out(0,2,0);
     //axi_out(0,2,1);
 
 
 
-    /*
+/*    
     let hello = "finish axi init";
     let axi0 = &mut *(AXI0_BASE as *mut AXI);
     let axi1 = &mut *(AXI1_BASE as *mut AXI);
