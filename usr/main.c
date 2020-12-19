@@ -63,66 +63,48 @@ int strlen(char *s) {
 #define LED1 2
 
 void _start() {
-    volatile int* a0=axi(0);
-    volatile int* a1=axi(1);
-    print_int(a0);
-    print("\n");
-    print_int(a1);
-    print("\n");
-    *a0=3;
-    *a1=3;
-    *a0=2;
-    *a1=2;
+    volatile int *a0 = axi(0);	
+ //   volatile int *a1 = axi(1);
     int delay = 0x200000;
     int time = delay;
-    for(int i =0; i<10; i++) {
-    	*a0 = LED0 | time;
-        time += delay;
-        *a0 = LED1 | time;
-        time += delay;
-        *a0 = LED0 | LED1 | time;
-        time += delay;
-        *a0 = time;
-        time += delay;
-    }
+    *a0=3;
+    *a0=2;
+    print_int(a0[1]);
 
+    if(fork()){
+        for(int i=0; i<10; i++) {
+            *a0 = LED0 | time;
+            time += delay;
+            *a0 = LED1 | time;
+            time += delay;
+            *a0 = LED0 | LED1 | time;
+            time += delay;
 
-    /*if(fork()) {
-	
-    }
-	    
-
-
-	    axi(0x10000002,0);
-            axi(0x20000003,0);
-            axi(0x30000001,0);
-            axi(0x40000002,0);
-       
-            //axi(0,0);
-        } 
-    } else {
-	
-        while (1) {
-           // write(1, msg2, 6);
-	    
-	    for(int i=1; i <33; i++){
-		    
-                axi(1+4*i*0x200000,0);
-                axi(2+(4*i+1)*0x200000,0);
-                axi(1+(4*i+2)*0x200000,0);
-                axi(2+(4*i+3)*0x200000,0);
-            }
-	    */
-	    /*
-	    
-
-	    axi(0x10000002,1);
-	    axi(0x20000003,1);
-	    axi(0x30000001,1);
-	    axi(0x40000002,1);
-	    
-	    //axi(0,1);
+            *a0 = time;
+            time += delay;
         }
-    }  */
+    }
+    else{
+        print("from child\r\n");
+        volatile int *a1=axi(1);
+        *a1=3;
+        *a1=2;	
+            for(int i=0; i<10; i++) {
+                *a1 = LED0 | time;
+                time += delay;
+                *a1 = LED1 | time;
+                time += delay;
+                *a1 = LED0 | LED1 | time;
+                time += delay;
+                *a1 = time;
+                time += delay;
+                if(a1[1]) {
+                    print("Full");
+                    while(1);
+                }
+
+
+            }
+    } 
     exit(0);
 }
