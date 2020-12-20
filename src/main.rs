@@ -8,5 +8,3 @@ pub extern "C" fn entry() -> ! {
     kernel::test();
     panic!("Done");
 }
-
-

@@ -1,6 +1,5 @@
 //! CP15 registers
 
-
 /// System control register
 pub struct Slctr;
 impl Slctr {
@@ -60,7 +59,7 @@ impl MPIDR {
             asm!(
                 "MRC p15, 0, {val}, c0, c0, 5",
                 val = out(reg) val
-            ); 
+            );
         }
         val
     }

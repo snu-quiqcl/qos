@@ -1,4 +1,4 @@
-pub mod uart;
+pub mod axi;
 pub mod mpcore;
 pub mod slcr;
-pub mod axi;
+pub mod uart;
