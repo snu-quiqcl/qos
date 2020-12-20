@@ -150,8 +150,10 @@ pub unsafe fn axi_seq(port: usize) -> usize {
     let va1 = AXI1_BASE;
     let va2 = AXID1_BASE;
     if (port == 0) {
+        AXI0_BASE = 0; 
         va0
     } else if (port == 1) {
+        AXI1_BASE = 0;
         va1
     } else {
         va2
