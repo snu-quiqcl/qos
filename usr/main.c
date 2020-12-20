@@ -7,6 +7,7 @@ enum syscalls {
     SYS_FORK,
     SYS_EXEC,
     SYS_EXIT,
+    SYS_AXI,
 };
 
 void write(int fd, char* s, int len) {
@@ -26,19 +27,107 @@ int fork() {
     return syscall(SYS_FORK);
 }
 
-char *msg = "parent\n";
-char *msg2 = "child\n";
+int axi(int port) {
+    return syscall(SYS_AXI,port);
+}
 
+void print(char *s) {
+    write(1, s, strlen(s));
+}
+
+void print_int(int num) {
+    if(num >= 10) {
+        print_int(num/10);
+        print_int(num%10);
+    } else if (num < 0) {
+        char s = '-';
+        write(1, &s, 1);
+        print_int(-num);
+    }
+    else {
+        char s = '0' + num;
+        write(1, &s, 1);
+    }
+}
+
+
+int strlen(char *s) {
+    int len = 0;
+    while(*s++) {
+        len++;
+    }
+    return len;
+}
+
+#define LED0 1
+#define LED1 2
 
 void _start() {
-    if(fork()) {
-        while (1) {
-        //    write(1,msg, 7);
-        } 
-    } else {
-        while (1) {
-            write(1, msg2, 6);
+    volatile int* a0=axi(0);
+    volatile int* a1=axi(1);
+    print_int(a0);
+    print("\n");
+    *a0=3;
+    *a0=2;
+    int delay = 0x800;
+    int time = delay;
+    int count=0;
+    /*
+    for (int i=0; i<2000 ; i++) {
+    	*a0 = LED0 | time;
+        time += delay;
+        *a0 = LED1 | time;
+        time += delay;
+        *a0 = LED0 | LED1 | time;
+        time += delay;
+        *a0 = time;
+        time += delay;
+	
+	print_int(a0[1]);
+
+    }
+    */
+   if(fork()){
+        for(int i=0; i<10000000; i++) {
+            *a0 = LED0 | time;
+            time += delay;
+       	    *a0 = LED1 | time;
+            time += delay;
+            *a0 = LED0 | time;
+            time += delay;
+            *a0 = LED1 | time;
+            time += delay;
+	    sleep(500);
+	    count++;
+	    if(a0[1]) {
+                print("pFull");
+                yield();
+            }
+
         }
     }
+    else{
+        print("from child\r\n");
+        volatile int *a1=axi(1);
+        *a1=3;
+        *a1=2;	
+            for(int i=0; i<10000000; i++) {
+                *a1 = LED0 | time;
+                time += delay;
+                *a1 = LED1 | time;
+                time += delay;
+                *a1 = LED0 | time;
+                time += delay;
+                *a1 = LED1 | time;
+                time += delay;
+		sleep(500);
+                if(a1[1]) {
+                    print("cFull");
+                    yield();
+                }
+
+
+            }
+    }  
     exit(0);
 }

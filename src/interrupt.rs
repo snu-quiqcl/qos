@@ -15,10 +15,10 @@ pub extern "C" fn undefined(tf: &TrapFrame) {
     println!("undefined");
 }
 #[no_mangle]
-pub unsafe extern "C" fn svc(tf: &TrapFrame) {
+pub unsafe extern "C" fn svc(tf: &mut TrapFrame) {
     let tf_static = &mut get_envs().envs[env::get_current_env().unwrap()].tf;
     *tf_static = *tf;
-    syscall::dispatch_syscall(tf_static);
+    syscall::dispatch_syscall(tf);
 }
 
 #[no_mangle]
@@ -28,7 +28,8 @@ pub unsafe extern "C" fn irq(tf: &TrapFrame, is_user: bool) {
     match irqid {
         29 => { /* Timer */
             let mut mpcore = mpcore::Mpcore::get();
-            //count_ptc_irq += 1;
+            count_ptc_irq += 1;
+            //println!("{}", count_ptc_irq);
             //mpcore.irq_ptc_preempt(count_ptc_irq);
             mpcore.clear_interrupt(irqid);                        
             mpcore.irq_end_interrupt(irqid);

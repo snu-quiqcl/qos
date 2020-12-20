@@ -1,6 +1,6 @@
 use paging::{USER_FLAG};
 use crate::{env::{self,TrapFrame, EnvStatus}, mem::{self, Vaddr}, paging::{self, L1PageTable, L1TableEntry, PAGE_SIZE, SECTION_SIZE}};
-
+use crate::io::axi::axi_seq;
 use crate::sched::{self};
 use crate::{println, print};
 
@@ -13,6 +13,7 @@ pub enum Syscall {
     Fork,
     Exec,
     Exit,
+    Axi,
     Unkown,
 }
 
@@ -25,13 +26,14 @@ impl Syscall {
             3 => Self::Fork,
             4 => Self::Exec,
             5 => Self::Exit,
+            6 => Self::Axi,
             _ => Self::Unkown,
         }
     }
 }
 
 
-pub fn dispatch_syscall(tf: &TrapFrame) {
+pub fn dispatch_syscall(tf: &mut TrapFrame) {
     let syscall_num = Syscall::new(tf.reg[0]);
     match syscall_num {
         Syscall::Write => {
@@ -62,6 +64,38 @@ pub fn dispatch_syscall(tf: &TrapFrame) {
         }
         Syscall::Exit => {
             env::env_destroy(env::get_current_env().unwrap());
+        }
+        Syscall::Axi => {
+            //let axi_data = tf.reg[1] as usize;
+            let port = tf.reg[1] as usize;
+            
+            unsafe{
+            //axi_seq(port);
+            //print!("{}",axi_seq(port)as usize);
+            tf.reg[0] = axi_seq(port);
+
+/*                axi_out(0,3,0);
+                axi_out(0,3,1);
+                axi_out(0,0,0);
+                axi_out(0,0,1);
+                axi_out(0,2,0);
+                axi_out(0,2,1);
+                axi_out(0,0x1002,0);
+                axi_out(0,0x20000003,0);
+                axi_out(0,0x30000001,0);
+                axi_out(0,0x40000002,0);
+
+  */          
+
+            }
+                /*
+            for i in 0..129 {
+                unsafe{
+                    axi_out(0, *axi_data.wrapping_offset(i as isize) as usize, port);
+                    
+                }
+            }
+            */
         }
         Syscall::Unkown => {
             println!("Worng syscall num");

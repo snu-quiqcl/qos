@@ -35,7 +35,7 @@ pub fn sched_yield() {
     }
 
     if let Some(id) = idle {
-        println!("Start running {}", id);
+        //println!("Start running {}", id);
         unsafe {env::env_run(id)};
         panic!("env_run returned");
     }

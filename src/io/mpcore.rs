@@ -218,7 +218,7 @@ pub unsafe fn timer_init() {
     pub const TIMER_SINGLE: u32 = 0x1; // mode: singleshot
     pub const TIMER_AUTO: u32 = 0x3; // mode: autoreload
     pub const TIMER_PRESCALER: u8 = 0xf0; // set prescaler value
-    pub const TIMER_LOAD: u32 = 0x10000; // set load value
+    pub const TIMER_LOAD: u32 = 0x100000; // set load value
 
     let mut mpcore = Mpcore::get();
     mpcore.ptc_start_timer(TIMER_AUTO, TIMER_PRESCALER, TIMER_LOAD);
