@@ -88,14 +88,15 @@ void _start() {
     }
     */
    if(fork()){
-        for(int i=0; i<10000000; i++) {
-            *a0 = LED0 | time;
+	for (int j=0; j<1000; j++){
+        for(int i=0; i<1000; i++) {
+            *a0 = (j%4) | time;
             time += delay;
-       	    *a0 = LED1 | time;
+       	    *a0 = (j%4) | time;
             time += delay;
-            *a0 = LED0 | time;
+            *a0 = (j%4) | time;
             time += delay;
-            *a0 = LED1 | time;
+            *a0 = (j%4) | time;
             time += delay;
 	    sleep(500);
 	    count++;
@@ -103,6 +104,7 @@ void _start() {
                 print("pFull");
                 yield();
             }
+	}
 
         }
     }
@@ -111,14 +113,15 @@ void _start() {
         volatile int *a1=axi(1);
         *a1=3;
         *a1=2;	
-            for(int i=0; i<10000000; i++) {
-                *a1 = LED0 | time;
+	    for(int j=0; j<1000; j++){
+            for(int i=0; i<1000; i++) {
+                *a1 = (j%4) | time;
                 time += delay;
-                *a1 = LED1 | time;
+                *a1 = (j%4) | time;
                 time += delay;
-                *a1 = LED0 | time;
+                *a1 = (j%4) | time;
                 time += delay;
-                *a1 = LED1 | time;
+                *a1 = (j%4) | time;
                 time += delay;
 		sleep(500);
                 if(a1[1]) {
@@ -126,7 +129,7 @@ void _start() {
                     yield();
                 }
 
-
+	    }
             }
     }  
     exit(0);
