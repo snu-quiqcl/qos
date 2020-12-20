@@ -26,7 +26,7 @@
 //!                 :              .               :
 //!                 :              .               :
 //!                 +------------------------------+
-//!                 |          IRQ stack           |  4KB 
+//!                 |          IRQ stack           |  4KB
 //!                 +------------------------------+
 //!                 |          boot stack          |  16KB
 //!                 +------------------------------+
@@ -44,11 +44,8 @@
 //! 1M -----------> +------------------------------+
 //!```
 
-
-
 use crate::env::{UserEnv, ENVS};
 use crate::util::round_up;
-
 
 pub unsafe fn memset(dest: *mut u8, value: u8, size: usize) {
     for i in 0..(size as isize) {
@@ -74,7 +71,7 @@ extern "C" {
 /// Kernel virtual memory
 #[derive(Clone, Copy, Debug)]
 pub struct Vaddr {
-    pub addr: usize
+    pub addr: usize,
 }
 
 impl Vaddr {
@@ -89,7 +86,7 @@ impl Vaddr {
 /// Physical memory
 #[derive(Clone, Copy, Debug)]
 pub struct Paddr {
-    pub addr: usize
+    pub addr: usize,
 }
 
 impl Paddr {
@@ -128,7 +125,7 @@ pub fn alloc_frame(len: usize, flag: u32) -> Vaddr {
     unsafe {
         ret = NEXT;
         NEXT += round_up(len, PAGE_SIZE);
-        if flag & 1 != 0 {   
+        if flag & 1 != 0 {
             memset(ret as *mut u8, 0, len);
         }
     }
@@ -136,8 +133,7 @@ pub fn alloc_frame(len: usize, flag: u32) -> Vaddr {
 }
 
 /// Do nothing
-pub fn free_frame(frame_number: usize) {
-}
+pub fn free_frame(frame_number: usize) {}
 
 /// Allocator for initial setup
 /// allocate static kernel memory
@@ -147,4 +143,3 @@ unsafe fn boot_alloc(next_free: &mut usize, size: usize) -> Vaddr {
     memset(ret as *mut u8, 0, size);
     Vaddr::new(ret)
 }
-

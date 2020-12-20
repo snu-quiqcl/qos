@@ -1,0 +1,366 @@
+
+*** Running vivado
+    with args -log design_1_coproc_1_0.vds -m64 -product Vivado -mode batch -messageDb vivado.pb -notrace -source design_1_coproc_1_0.tcl
+
+
+****** Vivado v2017.3 (64-bit)
+  **** SW Build 2018833 on Wed Oct  4 19:58:07 MDT 2017
+  **** IP Build 2016188 on Wed Oct  4 21:52:56 MDT 2017
+    ** Copyright 1986-2017 Xilinx, Inc. All Rights Reserved.
+
+source design_1_coproc_1_0.tcl -notrace
+Command: synth_design -top design_1_coproc_1_0 -part xc7z020clg400-1 -mode out_of_context
+Starting synth_design
+Attempting to get a license for feature 'Synthesis' and/or device 'xc7z020'
+INFO: [Common 17-349] Got license for feature 'Synthesis' and/or device 'xc7z020'
+INFO: Launching helper process for spawning children vivado processes
+INFO: Helper process launched with PID 496945 
+---------------------------------------------------------------------------------
+Starting RTL Elaboration : Time (s): cpu = 00:00:06 ; elapsed = 00:00:06 . Memory (MB): peak = 1267.996 ; gain = 84.000 ; free physical = 1404 ; free virtual = 8603
+---------------------------------------------------------------------------------
+INFO: [Synth 8-638] synthesizing module 'design_1_coproc_1_0' [/home/seungwoo/Downloads/qos2/qos.srcs/sources_1/bd/design_1/ip/design_1_coproc_1_0/synth/design_1_coproc_1_0.v:57]
+INFO: [Synth 8-638] synthesizing module 'coproc_v1_0' [/home/seungwoo/Downloads/qos2/qos.srcs/sources_1/bd/design_1/ipshared/790b/hdl/coproc_v1_0.v:4]
+	Parameter C_S00_AXI_DATA_WIDTH bound to: 32 - type: integer 
+	Parameter C_S00_AXI_ADDR_WIDTH bound to: 4 - type: integer 
+INFO: [Synth 8-638] synthesizing module 'coproc_v1_0_S00_AXI' [/home/seungwoo/Downloads/qos2/qos.srcs/sources_1/bd/design_1/ipshared/790b/hdl/coproc_v1_0_S00_AXI.v:4]
+	Parameter C_S_AXI_DATA_WIDTH bound to: 32 - type: integer 
+	Parameter C_S_AXI_ADDR_WIDTH bound to: 4 - type: integer 
+	Parameter ADDR_LSB bound to: 2 - type: integer 
+	Parameter OPT_MEM_ADDR_BITS bound to: 1 - type: integer 
+INFO: [Synth 8-226] default block is never used [/home/seungwoo/Downloads/qos2/qos.srcs/sources_1/bd/design_1/ipshared/790b/hdl/coproc_v1_0_S00_AXI.v:233]
+INFO: [Synth 8-226] default block is never used [/home/seungwoo/Downloads/qos2/qos.srcs/sources_1/bd/design_1/ipshared/790b/hdl/coproc_v1_0_S00_AXI.v:374]
+WARNING: [Synth 8-6014] Unused sequential element slv_reg1_reg was removed.  [/home/seungwoo/Downloads/qos2/qos.srcs/sources_1/bd/design_1/ipshared/790b/hdl/coproc_v1_0_S00_AXI.v:226]
+WARNING: [Synth 8-6014] Unused sequential element alone_flag_reg was removed.  [/home/seungwoo/Downloads/qos2/qos.srcs/sources_1/bd/design_1/ipshared/790b/hdl/coproc_v1_0_S00_AXI.v:445]
+INFO: [Synth 8-256] done synthesizing module 'coproc_v1_0_S00_AXI' (1#1) [/home/seungwoo/Downloads/qos2/qos.srcs/sources_1/bd/design_1/ipshared/790b/hdl/coproc_v1_0_S00_AXI.v:4]
+INFO: [Synth 8-256] done synthesizing module 'coproc_v1_0' (2#1) [/home/seungwoo/Downloads/qos2/qos.srcs/sources_1/bd/design_1/ipshared/790b/hdl/coproc_v1_0.v:4]
+INFO: [Synth 8-256] done synthesizing module 'design_1_coproc_1_0' (3#1) [/home/seungwoo/Downloads/qos2/qos.srcs/sources_1/bd/design_1/ip/design_1_coproc_1_0/synth/design_1_coproc_1_0.v:57]
+WARNING: [Synth 8-3331] design coproc_v1_0_S00_AXI has unconnected port S_AXI_AWPROT[2]
+WARNING: [Synth 8-3331] design coproc_v1_0_S00_AXI has unconnected port S_AXI_AWPROT[1]
+WARNING: [Synth 8-3331] design coproc_v1_0_S00_AXI has unconnected port S_AXI_AWPROT[0]
+WARNING: [Synth 8-3331] design coproc_v1_0_S00_AXI has unconnected port S_AXI_ARPROT[2]
+WARNING: [Synth 8-3331] design coproc_v1_0_S00_AXI has unconnected port S_AXI_ARPROT[1]
+WARNING: [Synth 8-3331] design coproc_v1_0_S00_AXI has unconnected port S_AXI_ARPROT[0]
+---------------------------------------------------------------------------------
+Finished RTL Elaboration : Time (s): cpu = 00:00:07 ; elapsed = 00:00:08 . Memory (MB): peak = 1329.527 ; gain = 145.531 ; free physical = 1414 ; free virtual = 8614
+---------------------------------------------------------------------------------
+
+Report Check Netlist: 
++------+------------------+-------+---------+-------+------------------+
+|      |Item              |Errors |Warnings |Status |Description       |
++------+------------------+-------+---------+-------+------------------+
+|1     |multi_driven_nets |      0|        0|Passed |Multi driven nets |
++------+------------------+-------+---------+-------+------------------+
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 1 : Time (s): cpu = 00:00:07 ; elapsed = 00:00:08 . Memory (MB): peak = 1329.527 ; gain = 145.531 ; free physical = 1419 ; free virtual = 8619
+---------------------------------------------------------------------------------
+INFO: [Device 21-403] Loading part xc7z020clg400-1
+INFO: [Project 1-570] Preparing netlist for logic optimization
+
+Processing XDC Constraints
+Initializing timing engine
+Completed Processing XDC Constraints
+
+INFO: [Project 1-111] Unisim Transformation Summary:
+No Unisim elements were transformed.
+
+Constraint Validation Runtime : Time (s): cpu = 00:00:00.13 ; elapsed = 00:00:00.03 . Memory (MB): peak = 1694.535 ; gain = 4.000 ; free physical = 1136 ; free virtual = 8336
+---------------------------------------------------------------------------------
+Finished Constraint Validation : Time (s): cpu = 00:00:22 ; elapsed = 00:00:32 . Memory (MB): peak = 1694.535 ; gain = 510.539 ; free physical = 1259 ; free virtual = 8459
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Loading Part and Timing Information
+---------------------------------------------------------------------------------
+Loading part: xc7z020clg400-1
+---------------------------------------------------------------------------------
+Finished Loading Part and Timing Information : Time (s): cpu = 00:00:22 ; elapsed = 00:00:32 . Memory (MB): peak = 1694.535 ; gain = 510.539 ; free physical = 1258 ; free virtual = 8459
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Applying 'set_property' XDC Constraints
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished applying 'set_property' XDC Constraints : Time (s): cpu = 00:00:22 ; elapsed = 00:00:32 . Memory (MB): peak = 1694.535 ; gain = 510.539 ; free physical = 1260 ; free virtual = 8461
+---------------------------------------------------------------------------------
+INFO: [Synth 8-5545] ROM "slv_reg0_buf" won't be mapped to RAM because address size (32) is larger than maximum supported(25)
+INFO: [Synth 8-5545] ROM "pitch_buf" won't be mapped to RAM because address size (32) is larger than maximum supported(25)
+INFO: [Synth 8-5546] ROM "polling" won't be mapped to RAM because it is too sparse
+WARNING: [Synth 8-6014] Unused sequential element t_counter_reg was removed.  [/home/seungwoo/Downloads/qos2/qos.srcs/sources_1/bd/design_1/ipshared/790b/hdl/coproc_v1_0_S00_AXI.v:434]
+WARNING: [Synth 8-6014] Unused sequential element w_counter_reg was removed.  [/home/seungwoo/Downloads/qos2/qos.srcs/sources_1/bd/design_1/ipshared/790b/hdl/coproc_v1_0_S00_AXI.v:436]
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 2 : Time (s): cpu = 00:00:25 ; elapsed = 00:00:36 . Memory (MB): peak = 1694.535 ; gain = 510.539 ; free physical = 1188 ; free virtual = 8391
+---------------------------------------------------------------------------------
+
+Report RTL Partitions: 
++-+--------------+------------+----------+
+| |RTL Partition |Replication |Instances |
++-+--------------+------------+----------+
++-+--------------+------------+----------+
+---------------------------------------------------------------------------------
+Start RTL Component Statistics 
+---------------------------------------------------------------------------------
+Detailed RTL Component Info : 
++---Adders : 
+	   3 Input      8 Bit       Adders := 1     
+	   2 Input      7 Bit       Adders := 2     
++---Registers : 
+	               32 Bit    Registers := 132   
+	                7 Bit    Registers := 1     
+	                4 Bit    Registers := 2     
+	                3 Bit    Registers := 1     
+	                2 Bit    Registers := 2     
+	                1 Bit    Registers := 8     
++---Muxes : 
+	   2 Input     32 Bit        Muxes := 259   
+	   4 Input     32 Bit        Muxes := 4     
+	   2 Input      7 Bit        Muxes := 2     
+	   2 Input      2 Bit        Muxes := 1     
+	   2 Input      1 Bit        Muxes := 651   
+	   3 Input      1 Bit        Muxes := 1     
+---------------------------------------------------------------------------------
+Finished RTL Component Statistics 
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start RTL Hierarchical Component Statistics 
+---------------------------------------------------------------------------------
+Hierarchical RTL Component report 
+Module coproc_v1_0_S00_AXI 
+Detailed RTL Component Info : 
++---Adders : 
+	   3 Input      8 Bit       Adders := 1     
+	   2 Input      7 Bit       Adders := 2     
++---Registers : 
+	               32 Bit    Registers := 132   
+	                7 Bit    Registers := 1     
+	                4 Bit    Registers := 2     
+	                3 Bit    Registers := 1     
+	                2 Bit    Registers := 2     
+	                1 Bit    Registers := 8     
++---Muxes : 
+	   2 Input     32 Bit        Muxes := 259   
+	   4 Input     32 Bit        Muxes := 4     
+	   2 Input      7 Bit        Muxes := 2     
+	   2 Input      2 Bit        Muxes := 1     
+	   2 Input      1 Bit        Muxes := 651   
+	   3 Input      1 Bit        Muxes := 1     
+---------------------------------------------------------------------------------
+Finished RTL Hierarchical Component Statistics
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Part Resource Summary
+---------------------------------------------------------------------------------
+Part Resources:
+DSPs: 220 (col length:60)
+BRAMs: 280 (col length: RAMB18 60 RAMB36 30)
+---------------------------------------------------------------------------------
+Finished Part Resource Summary
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Cross Boundary and Area Optimization
+---------------------------------------------------------------------------------
+INFO: [Synth 8-5545] ROM "slv_reg0_buf" won't be mapped to RAM because address size (32) is larger than maximum supported(25)
+INFO: [Synth 8-5545] ROM "pitch_buf" won't be mapped to RAM because address size (32) is larger than maximum supported(25)
+INFO: [Synth 8-5546] ROM "polling" won't be mapped to RAM because it is too sparse
+WARNING: [Synth 8-6014] Unused sequential element w_counter_reg was removed.  [/home/seungwoo/Downloads/qos2/qos.srcs/sources_1/bd/design_1/ipshared/790b/hdl/coproc_v1_0_S00_AXI.v:436]
+WARNING: [Synth 8-6014] Unused sequential element t_counter_reg was removed.  [/home/seungwoo/Downloads/qos2/qos.srcs/sources_1/bd/design_1/ipshared/790b/hdl/coproc_v1_0_S00_AXI.v:434]
+WARNING: [Synth 8-3331] design coproc_v1_0_S00_AXI has unconnected port S_AXI_AWPROT[2]
+WARNING: [Synth 8-3331] design coproc_v1_0_S00_AXI has unconnected port S_AXI_AWPROT[1]
+WARNING: [Synth 8-3331] design coproc_v1_0_S00_AXI has unconnected port S_AXI_AWPROT[0]
+WARNING: [Synth 8-3331] design coproc_v1_0_S00_AXI has unconnected port S_AXI_ARPROT[2]
+WARNING: [Synth 8-3331] design coproc_v1_0_S00_AXI has unconnected port S_AXI_ARPROT[1]
+WARNING: [Synth 8-3331] design coproc_v1_0_S00_AXI has unconnected port S_AXI_ARPROT[0]
+WARNING: [Synth 8-3332] Sequential element (axi_araddr_reg[1]) is unused and will be removed from module coproc_v1_0_S00_AXI.
+WARNING: [Synth 8-3332] Sequential element (axi_araddr_reg[0]) is unused and will be removed from module coproc_v1_0_S00_AXI.
+WARNING: [Synth 8-3332] Sequential element (axi_awaddr_reg[1]) is unused and will be removed from module coproc_v1_0_S00_AXI.
+WARNING: [Synth 8-3332] Sequential element (axi_awaddr_reg[0]) is unused and will be removed from module coproc_v1_0_S00_AXI.
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[1]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[2]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[3]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[4]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[5]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[6]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[7]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[8]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[9]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[10]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[11]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[12]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[13]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[14]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[15]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[16]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[17]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[18]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[19]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[20]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[21]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[22]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[23]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[24]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[25]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[26]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[27]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[28]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[29]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[30]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/polling_reg[31]'
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\inst/coproc_v1_0_S00_AXI_inst /\polling_reg[31] )
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/axi_rresp_reg[0]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/axi_rresp_reg[1]'
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\inst/coproc_v1_0_S00_AXI_inst /\axi_rresp_reg[1] )
+INFO: [Synth 8-3886] merging instance 'inst/coproc_v1_0_S00_AXI_inst/axi_bresp_reg[0]' (FDRE) to 'inst/coproc_v1_0_S00_AXI_inst/axi_bresp_reg[1]'
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\inst/coproc_v1_0_S00_AXI_inst /\axi_bresp_reg[1] )
+WARNING: [Synth 8-3332] Sequential element (axi_bresp_reg[1]) is unused and will be removed from module coproc_v1_0_S00_AXI.
+WARNING: [Synth 8-3332] Sequential element (polling_reg[31]) is unused and will be removed from module coproc_v1_0_S00_AXI.
+WARNING: [Synth 8-3332] Sequential element (axi_rresp_reg[1]) is unused and will be removed from module coproc_v1_0_S00_AXI.
+---------------------------------------------------------------------------------
+Finished Cross Boundary and Area Optimization : Time (s): cpu = 00:00:37 ; elapsed = 00:00:49 . Memory (MB): peak = 1743.527 ; gain = 559.531 ; free physical = 1130 ; free virtual = 8330
+---------------------------------------------------------------------------------
+
+Report RTL Partitions: 
++-+--------------+------------+----------+
+| |RTL Partition |Replication |Instances |
++-+--------------+------------+----------+
++-+--------------+------------+----------+
+---------------------------------------------------------------------------------
+Start Applying XDC Timing Constraints
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Applying XDC Timing Constraints : Time (s): cpu = 00:00:43 ; elapsed = 00:00:56 . Memory (MB): peak = 1743.527 ; gain = 559.531 ; free physical = 1008 ; free virtual = 8208
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Timing Optimization
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Timing Optimization : Time (s): cpu = 00:00:43 ; elapsed = 00:00:57 . Memory (MB): peak = 1743.527 ; gain = 559.531 ; free physical = 1004 ; free virtual = 8204
+---------------------------------------------------------------------------------
+
+Report RTL Partitions: 
++-+--------------+------------+----------+
+| |RTL Partition |Replication |Instances |
++-+--------------+------------+----------+
++-+--------------+------------+----------+
+---------------------------------------------------------------------------------
+Start Technology Mapping
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Technology Mapping : Time (s): cpu = 00:01:10 ; elapsed = 00:01:24 . Memory (MB): peak = 1789.137 ; gain = 605.141 ; free physical = 975 ; free virtual = 8179
+---------------------------------------------------------------------------------
+
+Report RTL Partitions: 
++-+--------------+------------+----------+
+| |RTL Partition |Replication |Instances |
++-+--------------+------------+----------+
++-+--------------+------------+----------+
+---------------------------------------------------------------------------------
+Start IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished IO Insertion : Time (s): cpu = 00:01:15 ; elapsed = 00:01:28 . Memory (MB): peak = 1789.137 ; gain = 605.141 ; free physical = 972 ; free virtual = 8176
+---------------------------------------------------------------------------------
+
+Report Check Netlist: 
++------+------------------+-------+---------+-------+------------------+
+|      |Item              |Errors |Warnings |Status |Description       |
++------+------------------+-------+---------+-------+------------------+
+|1     |multi_driven_nets |      0|        0|Passed |Multi driven nets |
++------+------------------+-------+---------+-------+------------------+
+---------------------------------------------------------------------------------
+Start Renaming Generated Instances
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Instances : Time (s): cpu = 00:01:15 ; elapsed = 00:01:28 . Memory (MB): peak = 1789.137 ; gain = 605.141 ; free physical = 972 ; free virtual = 8176
+---------------------------------------------------------------------------------
+
+Report RTL Partitions: 
++-+--------------+------------+----------+
+| |RTL Partition |Replication |Instances |
++-+--------------+------------+----------+
++-+--------------+------------+----------+
+---------------------------------------------------------------------------------
+Start Rebuilding User Hierarchy
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Rebuilding User Hierarchy : Time (s): cpu = 00:01:15 ; elapsed = 00:01:29 . Memory (MB): peak = 1789.137 ; gain = 605.141 ; free physical = 971 ; free virtual = 8175
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Ports
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Ports : Time (s): cpu = 00:01:15 ; elapsed = 00:01:29 . Memory (MB): peak = 1789.137 ; gain = 605.141 ; free physical = 971 ; free virtual = 8175
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Handling Custom Attributes
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Handling Custom Attributes : Time (s): cpu = 00:01:17 ; elapsed = 00:01:31 . Memory (MB): peak = 1789.137 ; gain = 605.141 ; free physical = 972 ; free virtual = 8172
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Nets
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Nets : Time (s): cpu = 00:01:17 ; elapsed = 00:01:31 . Memory (MB): peak = 1789.137 ; gain = 605.141 ; free physical = 972 ; free virtual = 8172
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Writing Synthesis Report
+---------------------------------------------------------------------------------
+
+Report BlackBoxes: 
++-+--------------+----------+
+| |BlackBox name |Instances |
++-+--------------+----------+
++-+--------------+----------+
+
+Report Cell Usage: 
++------+-------+------+
+|      |Cell   |Count |
++------+-------+------+
+|1     |CARRY4 |    16|
+|2     |LUT1   |    36|
+|3     |LUT2   |   152|
+|4     |LUT3   |    47|
+|5     |LUT4   |   297|
+|6     |LUT5   |  1422|
+|7     |LUT6   |  5258|
+|8     |MUXF7  |  1085|
+|9     |MUXF8  |   512|
+|10    |FDRE   |  4437|
+|11    |FDSE   |     1|
++------+-------+------+
+
+Report Instance Areas: 
++------+-----------------------------+--------------------+------+
+|      |Instance                     |Module              |Cells |
++------+-----------------------------+--------------------+------+
+|1     |top                          |                    | 13263|
+|2     |  inst                       |coproc_v1_0         | 13263|
+|3     |    coproc_v1_0_S00_AXI_inst |coproc_v1_0_S00_AXI | 13258|
++------+-----------------------------+--------------------+------+
+---------------------------------------------------------------------------------
+Finished Writing Synthesis Report : Time (s): cpu = 00:01:17 ; elapsed = 00:01:31 . Memory (MB): peak = 1789.137 ; gain = 605.141 ; free physical = 972 ; free virtual = 8172
+---------------------------------------------------------------------------------
+Synthesis finished with 0 errors, 0 critical warnings and 17 warnings.
+Synthesis Optimization Runtime : Time (s): cpu = 00:01:09 ; elapsed = 00:01:14 . Memory (MB): peak = 1789.137 ; gain = 240.133 ; free physical = 1032 ; free virtual = 8233
+Synthesis Optimization Complete : Time (s): cpu = 00:01:17 ; elapsed = 00:01:31 . Memory (MB): peak = 1789.145 ; gain = 605.141 ; free physical = 1032 ; free virtual = 8233
+INFO: [Project 1-571] Translating synthesized netlist
+INFO: [Netlist 29-17] Analyzing 1613 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 0 CPU seconds
+WARNING: [Netlist 29-101] Netlist 'design_1_coproc_1_0' is not ideal for floorplanning, since the cellview 'coproc_v1_0_S00_AXI' contains a large number of primitives.  Please consider enabling hierarchy in synthesis if you want to do floorplanning.
+INFO: [Project 1-570] Preparing netlist for logic optimization
+INFO: [Opt 31-138] Pushed 0 inverter(s) to 0 load pin(s).
+INFO: [Project 1-111] Unisim Transformation Summary:
+No Unisim elements were transformed.
+
+INFO: [Common 17-83] Releasing license: Synthesis
+60 Infos, 26 Warnings, 0 Critical Warnings and 0 Errors encountered.
+synth_design completed successfully
+synth_design: Time (s): cpu = 00:01:19 ; elapsed = 00:01:33 . Memory (MB): peak = 1805.145 ; gain = 645.973 ; free physical = 1076 ; free virtual = 8277
+INFO: [Common 17-1381] The checkpoint '/home/seungwoo/Downloads/qos2/qos.runs/design_1_coproc_1_0_synth_1/design_1_coproc_1_0.dcp' has been generated.

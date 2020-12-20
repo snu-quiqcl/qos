@@ -13,9 +13,8 @@ pub struct ElfHeader {
     pub e_phnum: u16,
     pub e_shentsize: u16,
     pub e_shnum: u16,
-    pub e_shstrndx: u16
+    pub e_shstrndx: u16,
 }
-
 
 #[repr(C, packed)]
 pub struct ProgramHeader {
