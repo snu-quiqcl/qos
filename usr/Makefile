@@ -1,6 +1,8 @@
 CC=arm-none-eabi-gcc
+CFLAGS=-Tlink.x -nostdlib syscall.S -o
+PROGS=hello fork preemption cooperative
 
-all: shell
+all: $(PROGS)
 
-shell: main.c
-	$(CC) -Tlink.x -nostdlib main.c syscall.S -o hello
+$(PROGS):
+	$(CC) $(CFLAGS) $@  $@.c

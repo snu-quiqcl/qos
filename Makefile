@@ -5,11 +5,10 @@ KERNEL=target/armv7a-none-eabi/release/kernel
 CARGOFLAG=--release
 endif
 all:
+	cd usr && make && cd ..
 	cargo build $(CARGOFLAG)
-	cargo objdump $(CARGOFLAG) -- -D > target/kern.obj
-
-shell: usr/main.c
-	$(CC) -Tusr/link.x -nostdlib usr/main.c usr/syscall.S -o usr/shell
+	#cargo objdump $(CARGOFLAG) -- -D > target/kern.obj
+		
 
 gdb: all
 	gdb-multiarch $(KERNEL)
